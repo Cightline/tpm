@@ -1,4 +1,4 @@
-import libtorrent, cPickle, os, ConfigParser
+import libtorrent, cPickle, os, ConfigParser, json, optparse
 from twisted.internet import reactor, protocol
 
 
@@ -13,22 +13,57 @@ class tpm(protocol.Protocol):
 	    self.json_port = cfg.get("json_server", "port")
 	    print "Config loaded"
 	
+	
+	    
+	#parse the arguments given by the user    
+	parser = optparse.OptionParser()
+	
+	
+	parser.add_option('-u', '--update',
+				action="store_true",
+				dest='update_package_list', 
+				help="Update your local package list", 
+			)
+		
+	
+	(self.options, self.args) = parser.parse_args()
+	
+	
+	
+	#now setup the session
+	
 	self.connected = 0
 	self.s = libtorrent.session()
 	self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
 	print "Using ports %s and %s for the tracker"  % (self.ports.split(" ")[0], self.ports.split(" ")[1])
 	
 	
+	
+	
+    
+    
+    def handle_args(self):
+	if self.options.update_package_list:
+	    self.update_package_list()
+	
+
+    
     
     def connectionMade(self):
 	self.connected = 1
 	print "Connection made to: %s" % self.json_server
+	
     
     def dataReceived(self, data):
 	print "Data: %s " % data
 	
-	if data == "json-server 1.0 for tpm":
+	json_data = json.loads(data)
+	
+	if json_data["json-server"] == "1.0":
 	    print "Successful connection"
+	    self.handle_args()
+		
+
 	
 	
     def connectionLost(self, reason):
@@ -70,8 +105,9 @@ class tpm(protocol.Protocol):
 	
     
     def update_package_list(self):
+	print "Updating..."
 	if self.connected:
-	    self.transport.write(json.dumps({"package_list"}))
+	    self.transport.write(json.dumps(["request_package_list"]))
     
     
 class EchoFactory(protocol.ClientFactory):
