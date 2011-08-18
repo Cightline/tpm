@@ -10,12 +10,7 @@ class Json_Server():
 	cfg.readfp(open(os.path.expanduser("~/.tpm_server/config")))
 	
 	self.package_file = cfg.get("package", "dir")
-	if os.path.exists(self.package_file):
-	    sql = sqldatabase.Database(self.package_file)
-	    
-	else:
-	    print "I did not load the package file"
-	    
+	self.sql = sqldatabase.Database(self.package_file)
 	    
 	    
     def delegate(self, json_data):
@@ -35,8 +30,8 @@ class Json_Server():
 	#Thats all the functions I can think of for now
 	
     def spew_package_list(self, json_data):
-	pass
-	
+	#print json.dumps({"package_list":self.sql.return_packages()})
+	print self.sql.return_packages()
     
     def announce_new_package(self):
 	pass 
