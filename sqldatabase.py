@@ -29,25 +29,30 @@ class Database:
 		print "I cannot do anything"
 		exit()
 		
-	self.add_package("wat", "ok", "hur")
+	#self.add_package("dummy_package1", 1.0, "2394902340293j3kl4j23490")
+	#self.add_package("dummy_package2", 1.33, "3902099090902390239023")
 	
     def initilize_database(self):
 	self.cursor = self.connection.cursor()
 	self.cursor.execute('''create table packages (name text, version text, location text)''')
+	self.cursor.commit()
 	print "Database initilized"
 	
-    def return_packages(self):
+    def return_packages(self): #I know this is not the best way to do this...
+	packages = []
 	print "Retriving packages"
-	packages = self.cursor.execute('select * from packages order by name')
-	for p in packages:
-	    print p
-	print type(packages)
+	for pkg in self.cursor.execute('select * from packages order by name'):
+	    print pkg
+	    packages += pkg
 	return packages
 	
 	
     def add_package(self, p_name, p_version, p_hash):
-	print "Adding package ", p_name
-	self.cursor.execute("""insert into packages values ('%s, %s, %s')""" % (p_name, p_version, p_hash)) #I don't think I'm supposed to do it this way
+	print "Adding package name: %s version: %s hash: %s " % (p_name, p_version, p_hash)
+	
+	self.cursor.execute("""insert into packages values (?,?,?)""", [p_name, p_version, p_hash]) 
+	
+	self.connection.commit()
 	print "Package added"
 	
     def remove_package(self):
