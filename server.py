@@ -1,27 +1,46 @@
 
-import os, json
+import os, json, ConfigParser
 from twisted.internet import reactor
 from twisted.internet.protocol import Protocol, Factory
 
-class Echo(Protocol):
-    
-    
+
+class Json_Server():
     def __init__(self):
 	cfg = ConfigParser.RawConfigParser()
 	cfg.readfp(open(os.path.expanduser("~/.tpm_server/config")))
+	
 	self.package_file = cfg.get("package", "dir")
 	if os.path.exists(self.package_file):
-	    try:
-		json.load(open(self.package_file))
-		print "Loaded package file"
-	    except:
-		print "I could not load the package file, exiting"
-		exit(1)
-	else:
-	    if raw_input("I could not find the package file, should I create a empty one?").lower() == "y" or "yes":
-		json.dump(["empty"], self.package_file)
-		
+	    print "Loading package file..."
 	    
+	else:
+	    print "I did not load the package file"
+	    
+	    
+	    
+    def recieve_package(self):
+	pass
+	
+	
+    def spew_package_list(self):
+	pass
+	
+    
+    def announce_new_package(self):
+	pass 
+	
+    def invalidate_package_torrent(self, torrent):
+	pass 
+	
+	
+	
+	
+	
+    
+
+
+
+class Json_Protocol(Protocol):
     
     def dataReceived(self, data):
 	#self.transport.write(data)
@@ -37,10 +56,11 @@ class Echo(Protocol):
 
 def main():
     f = Factory()
-    f.protocol = Echo
+    f.protocol = Json_Protocol #<-- This inits Json_Protocol everytime something is recieved. 
     reactor.listenTCP(8000, f)
+    print "Running"
     reactor.run()
 
-# this only runs if the module was *not* imported
+
 if __name__ == '__main__':
     main()

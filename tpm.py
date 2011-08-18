@@ -17,7 +17,7 @@ class tpm(protocol.Protocol):
 	self.s = libtorrent.session()
 	self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
 	print "Using ports %s and %s for the tracker"  % (self.ports.split(" ")[0], self.ports.split(" ")[1])
-	self.create_package_torrent()
+	
 	
     
     def connectionMade(self):
@@ -25,10 +25,10 @@ class tpm(protocol.Protocol):
 	print "Connection made to: %s" % self.json_server
     
     def dataReceived(self, data):
-        #"As soon as any data is received, write it back."
-        #print "Server said:", data
-        #self.transport.loseConnection()
 	print "Data: %s " % data
+	
+	if data == "json-server 1.0 for tpm":
+	    print "Successful connection"
 	
 	
     def connectionLost(self, reason):
@@ -43,14 +43,16 @@ class tpm(protocol.Protocol):
 	else:
 	    print "You do not have a config file"
 	    return False
-
+    
+    
+    
 	
     
     def upload_torrent(self, path):
 	if self.connected:
 	    if os.path.exists(path):
 		tmp = open(path, "rb").read()
-		self.transport.write(json.dumps(["upload", tmp]) 
+		self.transport.write(json.dumps(["upload", tmp]))
 	    else:
 		print "Cannot upload a file that does not exist"
 	
@@ -67,6 +69,11 @@ class tpm(protocol.Protocol):
 	    self.transport.write(json.dumps({"search":package}))
 	
     
+    def update_package_list(self):
+	if self.connected:
+	    self.transport.write(json.dumps({"package_list"}))
+    
+    
 class EchoFactory(protocol.ClientFactory):
     protocol = tpm
 
@@ -75,7 +82,7 @@ class EchoFactory(protocol.ClientFactory):
         reactor.stop()
     
     def clientConnectionLost(self, connector, reason):
-        print "Connection lost - goodbye!"
+        print "Connection lost, check your internet"
         reactor.stop()
     
 	
