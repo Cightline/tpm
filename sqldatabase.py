@@ -13,7 +13,7 @@ class Database:
 	
 	if os.path.exists(db_file):
 	    try:
-		self.connection = dbapi.connect(self.db_file)
+		self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
 		print "Loaded package database"
 		self.cursor = self.connection.cursor()
 	    except:
@@ -39,12 +39,12 @@ class Database:
 	print "Database initilized"
 	
     def return_packages(self): #I know this is not the best way to do this...
+	print "[sql] Retriving packages"
 	packages = []
-	print "Retriving packages"
-	for pkg in self.cursor.execute('select * from packages order by name'):
-	    print pkg
-	    packages += pkg
-	return packages
+	for p in self.cursor.execute('select * from packages order by name'):
+	    packages += [{"name":p[0], "version":p[1], "hash":p[2]}]
+	return packages 
+	
 	
 	
     def add_package(self, p_name, p_version, p_hash):

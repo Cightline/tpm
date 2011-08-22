@@ -1,4 +1,4 @@
-import libtorrent, cPickle, os, ConfigParser, json, optparse
+import libtorrent, cPickle, os, ConfigParser, json, optparse, cStringIO
 from twisted.internet import reactor
 from twisted.spread import pb, jelly
 from twisted.python import util
@@ -22,7 +22,7 @@ class tpm():
 	    self.tracker = cfg.get("tracker", "tracker")
 	    self.json_server = cfg.get("json_server", "address")
 	    self.json_port = cfg.get("json_server", "port")
-	    print "Config loaded"
+	    #print "Config loaded"
     
 	    
 	parser = optparse.OptionParser()
@@ -33,15 +33,27 @@ class tpm():
 				dest='update_package_list', 
 				help="Update your local package list", 
 			)
+			
+	parser.add_option('-s', '--search',
+				action="store",
+				dest="search_package",
+				help="Search for a package",
+			)
+			
+	parser.add_option('-l', '--list',
+				action="store_true",
+				dest="list_packages",
+				help="List packages"
+			)
 		
 	(self.options, self.args) = parser.parse_args()
 	
 	#now setup the session
 	
-	self.connected = 0
+	self.todo = []
 	self.s = libtorrent.session()
 	self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
-	print "Using ports %s and %s for the tracker"  % (self.ports.split(" ")[0], self.ports.split(" ")[1])
+	#print "Using ports %s and %s for the tracker"  % (self.ports.split(" ")[0], self.ports.split(" ")[1])
 	self.handle_args()
 	
 	
@@ -50,7 +62,19 @@ class tpm():
     
     def handle_args(self):
 	if self.options.update_package_list:
+	    self.todo += ["u"]
 	    self.d_update_package_list()
+	    
+	if self.options.search_package:
+	    self.todo += ["s"]
+	    self.search_package(self.options.search_package)
+	    
+	if self.options.list_packages:
+	    self.todo += ["l"]
+	    self.list_packages()
+	    
+	
+	
 	
 
     
@@ -59,15 +83,7 @@ class tpm():
 	self.connected = 1
 	print "Connection made to: %s" % self.json_server
 	self.handle_args()
-    
-    def dataReceived(self, data):
-	print "Data: %s " % data
-	
-	json_data = json.loads(data)
-	
-	
-
-	
+    	
 	
     def connectionLost(self, reason):
 	self.connected = 0
@@ -83,7 +99,10 @@ class tpm():
 	    return False
     
     
-    
+    def check_done(self):
+	if len(self.todo) == 0:
+	    reactor.stop()
+	    
 	
     
     def upload_torrent(self, path):
@@ -94,24 +113,54 @@ class tpm():
 	    else:
 		print "Cannot upload a file that does not exist"
 	
-    def create_package_torrent(self):
+    def create_package_torrent(self, file_path):
 	fs = libtorrent.file_storage()
-	libtorrent.add_files(fs, "/home/stealth/Desktop/test_torrent")
+	libtorrent.add_files(fs, file_path)
 	self.t = libtorrent.create_torrent(fs)
 	self.t.add_tracker(self.tracker)
 	self.t.set_creator("tpm 1.0")
 	open("%s.torrent" % (self.t.generate()["info"]["name"]), "wb").write(libtorrent.bencode(self.t.generate()))
 	
-    def search_package(self, package):
-	if self.connected:
-	    self.transport.write(json.dumps({"search":package}))
+    def list_packages(self): #This is redundant, I will make a "package list loader"
+	package_file = open(os.path.expanduser("~/.tpm/package_list"), "rb")
+	packages = cPickle.load(package_file)
+	for p in packages:
+	    print p["name"]
+	self.todo.remove("l")
+	self.check_done()
+	
     
-    def update_package_list(self, obj):
-	print jelly.unjelly(obj)
+    
+    def search_package(self, search):
+	self.found = 0
+	package_file = open(os.path.expanduser("~/.tpm/package_list"), "rb")
+	packages = cPickle.load(package_file)
+	print "Searching..."
+	for p in packages:
+	    if search == p["name"]:
+		self.found += 1
+		print "[%s] version: %s " % (p["name"], p["version"])
+	if self.found == 0:
+	    print "Package not found"
+	    
+	package_file.close()
+	self.todo.remove("s")
+	self.check_done()
+	
+    
+    def format_list(self, data):
+	package_file = open(os.path.expanduser("~/.tpm/package_list"),"wb")
+	cPickle.dump(jelly.unjelly(data),package_file, 2)
+	package_file.close()
+	print "Packages updated"
+	self.todo.remove("u")
+	self.check_done()
+	
     
     def d_update_package_list(self):
-	d_package_list = self.obj.callRemote("spew_package_list")
-	d_package_list.addCallbacks(self.update_package_list)
+	print "Updating..."
+	d_package_list = self.obj.callRemote("spew_package_list").addCallback(self.format_list)
+	
     
 
     

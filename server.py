@@ -1,7 +1,14 @@
 
-import os, json, ConfigParser, sqldatabase
-from twisted.internet import reactor
+import os, json, ConfigParser, sqldatabase, cStringIO
+from twisted.internet import reactor, interfaces 
 from twisted.spread import pb, jelly
+from twisted.spread.util import FilePager
+
+
+
+	
+    
+	
 
 class Json_Server(pb.Root):
     def __init__(self):
@@ -24,10 +31,11 @@ class Json_Server(pb.Root):
     
     	
     def remote_spew_package_list(self): #This is gonna be poorly written until I figure something out
-	packages = []
-	#return json.dumps({"package_list":[self.sql.return_packages()]}
+	print "[Server] Spewing..."
 	return jelly.jelly(self.sql.return_packages())
-    
+	    
+	
+	
     def remote_announce_new_package(self):
 	pass 
     
