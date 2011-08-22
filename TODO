@@ -1,0 +1,4 @@
+1. Rewrite search_packages to use sql (should be easy, concept is already there)
+2. Test the strength of update_package_list in tpm.py
+3. Test the strength of return_packages in sqldatabase.py
+4. Create the torrent daemon, some of the code is in tpm.py.
