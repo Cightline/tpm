@@ -57,10 +57,8 @@ class tpm():
 	
 	#This is redundant, I will make a "package list loader"
     def list_packages(self): 
-	package_file = open(os.path.expanduser("~/.tpm/package_list"), "rb")
-	packages = cPickle.load(package_file)
-	for p in packages:
-	    print p["name"]
+	for p in self.sql.return_packages():
+	    print p
 
 	self.check_done()
 	
@@ -87,9 +85,18 @@ class tpm():
     def format_list(self, data):
 	total = 0
 	for p in jelly.unjelly(data):
-	    self.sql.add_package(p["name"], p["version"], p["hash"])
-	    total += 1
-	print "Packages updated: [%s]" % total
+	    try:
+		self.sql.add_package(p["name"], p["version"], p["hash"])
+		total += 1
+	    except:
+		pass
+		#print "Skipping %s %s" % (p["name"], p["version"])
+	
+	if total == 0:
+	    print "Already up to date"
+	else:
+	    print "Updated: %s packages" % total
+	    
 	self.check_done()
 	
 	
