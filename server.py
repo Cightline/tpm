@@ -1,5 +1,4 @@
-
-import os, json, ConfigParser, sqldatabase, cStringIO
+import os, json, ConfigParser, sqldatabase, optparse
 from twisted.internet import reactor, interfaces 
 from twisted.spread import pb, jelly
 from twisted.spread.util import FilePager
@@ -13,6 +12,33 @@ class Json_Server(pb.Root):
 	cfg.readfp(open(os.path.expanduser("~/.tpm_server/config")))
 	self.package_file = cfg.get("package", "dir")
 	self.sql = sqldatabase.Database(self.package_file)
+	self.random_package_num = 100000
+	self.parse_options()
+	
+	
+    def parse_options(self):
+	parser = optparse.OptionParser()
+	
+	parser.add_option('-d', '--dummy-package',
+				action="store",
+				dest='add_dummy', 
+				help="Add [num] of dummy packages (used for stress testing)", 
+			)
+	
+	(self.options, self.args) = parser.parse_args()
+	
+	if self.options.add_dummy:
+	    print "Adding %s dummy packages..." % self.options.add_dummy
+	    import random
+	    for x in range(int(self.options.add_dummy)+1):
+		num = random.randrange(0, self.random_package_num)
+		try:
+		    self.sql.add_package("dummy_package%s" % (num), num, num)
+		    print "[dummypackage%s]: added" % (num)
+		except:
+		    print "[dummypackage%s]: NOT added" % (num)
+	    print "Done, added %s dummy packages" % x
+	    
     
 	#This function will tell the tracker that the package/torrent is invalid. 
     def invalidate_package_torrent(self, torrent):

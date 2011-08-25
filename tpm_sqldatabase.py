@@ -36,7 +36,6 @@ class Database:
 	print "Database initilized"
 	
     def return_packages(self): #I know this is not the best way to do this...
-	print "[sql] Retriving packages"
 	packages = []
 	for p in self.cursor.execute('select * from packages order by name'):
 	    packages += [{"name":p[0], "version":p[1], "hash":p[2]}]

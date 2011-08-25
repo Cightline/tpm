@@ -58,7 +58,7 @@ class tpm():
 	#This is redundant, I will make a "package list loader"
     def list_packages(self): 
 	for p in self.sql.return_packages():
-	    print p
+	    print p["name"]
 
 	self.check_done()
 	
@@ -66,17 +66,14 @@ class tpm():
 	#This is redundant, I will make a "package list loader"
     def search_package(self, search):
 	self.found = 0
-	package_file = open(os.path.expanduser("~/.tpm/package_list"), "rb")
-	packages = cPickle.load(package_file)
 	print "Searching..."
-	for p in packages:
+	for p in sql.return_packages():
 	    if search == p["name"]:
 		self.found += 1
 		print "[%s] version: %s " % (p["name"], p["version"])
 	if self.found == 0:
 	    print "Package not found"
 	    
-	package_file.close()
 	self.check_done()
 	
 	
@@ -116,7 +113,7 @@ class tpm():
 	elif self.options.list_packages:
 	    self.list_packages()
 	
-	
+    
 
     
 cfg = ConfigParser.RawConfigParser()
