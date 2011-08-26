@@ -41,6 +41,9 @@ class Json_Server(pb.Root):
 	    
     
 	#This function will tell the tracker that the package/torrent is invalid. 
+    
+    
+    
     def invalidate_package_torrent(self, torrent):
 	pass 
 	
@@ -48,9 +51,14 @@ class Json_Server(pb.Root):
 	
 	
     #This remote function returns the package list to the client.
-    def remote_spew_package_list(self): #This is gonna be poorly written until I figure something out
-	print "[Server] Spewing..."
-	return jelly.jelly(self.sql.return_packages())
+    def remote_spew_package_list(self, req_size, send_length): #This is gonna be poorly written until I figure something out
+	print "[Server] Spewing package list to client..."
+	package_list = self.sql.return_packages()
+	total = len(package_list)
+	chunk = req_size
+	#print "Sending: %s" % package_list[chunk[0]:chunk[1]]
+	print "Chunk: %s, total: %s " % (chunk, total)
+	return jelly.jelly(package_list[chunk[0]:chunk[1]]), jelly.jelly(len(package_list)) 
 	    
 	
     #This is for when a client creates (automatically) a new package torrent that does not already exist.

@@ -14,7 +14,8 @@ class tpm():
 	    self.json_server = cfg.get("json_server", "address")
 	    self.json_port = cfg.get("json_server", "port")
 	    self.sql = sql.Database(os.path.expanduser("~/.tpm/package.db"))
-    
+	    self.chunk_local = 0,10
+	    
 	#Setup our command line options
 	parser = optparse.OptionParser()
 	
@@ -77,30 +78,37 @@ class tpm():
 	self.check_done()
 	
 	
-	#This is redundant, I will make a "package list loader"
 	
-    def format_list(self, data):
-	total = 0
-	for p in jelly.unjelly(data):
-	    try:
-		self.sql.add_package(p["name"], p["version"], p["hash"])
-		total += 1
-	    except:
-		pass
-		#print "Skipping %s %s" % (p["name"], p["version"])
+    
+    def add_to_local(self, data):
+	total_added = 0 
+	total = len(data)
+	for package in data:
+	    print package["name"]
+	    self.sql.add_package(package["name"], package["version"], package["hash"])
+	    total_added += 1
 	
-	if total == 0:
-	    print "Already up to date"
-	else:
-	    print "Updated: %s packages" % total
-	    
-	self.check_done()
+	
+	return total_added, total
+    
+    
+    def deal_with_list(self, data, package_length=None):
+	
+	if data:
+	    data = data[0]
+	    total_added, total = self.add_to_local(jelly.unjelly(data))
+	    self.chunk_local = total_added+1,total_added+10
+	
+	print "Gathered: %s Total: %s" % (total_added, total)
+	self.obj.callRemote("spew_package_list", self.chunk_local, True).addCallback(self.deal_with_list)
+	
+	
 	
 	
 	#This calls the "remote" function on the Json_Server
     def d_update_package_list(self):
 	print "Updating..."
-	self.obj.callRemote("spew_package_list").addCallback(self.format_list)
+	self.obj.callRemote("spew_package_list", self.chunk_local, True).addCallback(self.deal_with_list)
 	
 	
     def handle_args(self):
