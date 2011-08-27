@@ -1,16 +1,16 @@
-import cPickle, os, ConfigParser, json, optparse, cStringIO, check_config, tpm_sqldatabase as sql
-from twisted.internet import reactor
+import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, check_config, tpm_sqldatabase as sql
+from twisted.internet import reactor, defer
 from twisted.spread import pb, jelly
 from twisted.python import util    
-import communicate
 
 
     
 
 
 class tpm():
-    def __init__(self, obj):
+    def __init__(self, obj, reactor):
 	self.obj = obj
+	self.conn = reactor
 	#Check to see if our config exists, then grab some args.
 	if check_config.check("~/.tpm/config"):
 	    cfg = ConfigParser.RawConfigParser()
@@ -21,20 +21,19 @@ class tpm():
 	    self.chunk_local = 0,10
 	    self.chunk_size = int(cfg.get("json_server", "chunk_size"))
 	    self.total = 0
-	    communicate.run()
-	    self.comm = communicate.Communicate()
-	    
+	    self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:7766/tpm_daemon")
+
 	#Setup our command line options
 	parser = optparse.OptionParser()
 	
 	
-	parser.add_option('-U', '--update',
+	parser.add_option('-d', '--update',
 				action="store_true",
 				dest='update_package_list', 
 				help="Update your local package list", 
 			)
 			
-	parser.add_option('-S', '--search',
+	parser.add_option('-s', '--search',
 				action="store",
 				dest="search_package",
 				help="Search for a package",
@@ -57,7 +56,7 @@ class tpm():
 	
 	
 	self.handle_args()
-	    
+	
     
     def check_done(self):
 	if reactor.running:
@@ -132,8 +131,13 @@ class tpm():
 	print "Updating..."
 	self.obj.callRemote("spew_package_list", self.chunk_local, True).addCallback(self.deal_with_list)
 	
-	
+    def c_upload_torrent(self, *args):
+	if args[0] == False:
+	    print "Cannot upload something that does not exists"    
+    
+    
     def handle_args(self):
+	
 	if self.options.update_package_list:
 	    self.d_update_package_list()
 	    
@@ -144,15 +148,17 @@ class tpm():
 	    self.list_packages()
 	    
 	elif self.options.upload_package:
-	    self.comm.sendMessage(json.dumps({"upload_torrent":self.options.upload_package}))
+	    #self.obj.callRemote("upload_torrent", self.options.upload_package).addCallback(self.c_upload_torrent)
+	    print self.daemon.upload_torrent(self.options.upload_package)
+	    self.check_done()
 	
     
 
-    
+
 cfg = ConfigParser.RawConfigParser()
 cfg.readfp(open(os.path.expanduser("~/.tpm/config")))
 factory = pb.PBClientFactory()
-reactor.connectTCP(cfg.get("json_server", "address"), int(cfg.get("json_server", "port")), factory)
-factory.getRootObject().addCallback(tpm)
+connector = reactor.connectTCP(cfg.get("json_server", "address"), int(cfg.get("json_server", "port")), factory)
+factory.getRootObject().addCallback(tpm, connector)
 reactor.run()
     

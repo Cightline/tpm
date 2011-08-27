@@ -1,11 +1,10 @@
-from twisted.internet import reactor 
-import check_config, libtorrent, os, ConfigParser
-from twisted.protocols import basic
-from twisted.internet import protocol
-from twisted.application import service, internet
+import Pyro.core, check_config, libtorrent, os, ConfigParser
 
-class tpm_daemon(protocol.Protocol):
+
+
+class tpm_daemon(Pyro.core.ObjBase):
     def __init__(self):
+	Pyro.core.ObjBase.__init__(self)
 	self.daemon_config = "/home/stealth/.tpm/config"
 	
 	if os.getuid() != 0:
@@ -26,43 +25,30 @@ class tpm_daemon(protocol.Protocol):
 	    print "Running"
 	
 	    
-    def lineReceived(self, line):
-	print "[Recv] ", line  
-	    
-    
-    def connectionLost(self, reason):
-	print "Connection lost ", reason
-	
-	
-    def lineReceived(self, line):
-	print "received", repr(line)
-	
-    def sendMessage(self, message):
-	self.transport.write(message+"\n")
-    
     
     def upload_torrent(self, path):
 	if os.path.exists(path):
 	    tmp = open(path, "rb").read()
-	    #call remote upload
+	    self.create_package_torrent(path)
+	    return "Handling package"
 	else:
-	    print "Cannot upload a file that does not exist"
-
+	    return "Cannot upload a file that does not exist"
+	    
     def create_package_torrent(self, file_path):
+	print "Creating .torrent for %s..." % file_path
 	fs = libtorrent.file_storage()
 	libtorrent.add_files(fs, file_path)
 	self.t = libtorrent.create_torrent(fs)
 	self.t.add_tracker(self.tracker)
 	self.t.set_creator("tpm 1.0")
 	open("%s.torrent" % (self.t.generate()["info"]["name"]), "wb").write(libtorrent.bencode(self.t.generate()))
+	print "Torrent created"
 
-
-    
-
-factory = protocol.ServerFactory()
-factory.protocol = tpm_daemon
-reactor.listenTCP(8001,factory)
-reactor.run()
+Pyro.core.initServer()
+daemon=Pyro.core.Daemon()
+uri = daemon.connect(tpm_daemon(), "tpm_daemon")
+print "Port: %s URI: %s" % (daemon.port, uri)
+daemon.requestLoop()
 
 
 
