@@ -34,7 +34,7 @@ class Database:
 	
     def initilize_database(self):
 	self.cursor = self.connection.cursor()
-	self.cursor.execute('''create table packages (name text, version text, location text)''')
+	self.cursor.execute('''create table packages (name text NOT NULL UNIQUE COLLATE NOCASE, version text NOT NULL UNIQUE COLLATE NOCASE , hash text NOT NULL UNIQUE COLLATE NOCASE)''')
 	self.cursor.commit()
 	print "Database initilized"
 	

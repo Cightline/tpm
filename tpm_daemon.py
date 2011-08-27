@@ -1,10 +1,12 @@
 from twisted.internet import reactor 
 import check_config, libtorrent, os, ConfigParser
+from twisted.protocols import basic
+from twisted.internet import protocol
+from twisted.application import service, internet
 
-
-class tpm_daemon():
+class tpm_daemon(protocol.Protocol):
     def __init__(self):
-	self.daemon_config = os.path.expanduser("~/.tpm/config")
+	self.daemon_config = "/home/stealth/.tpm/config"
 	
 	if os.getuid() != 0:
 	    print "Run me as root" 
@@ -21,12 +23,24 @@ class tpm_daemon():
 	    self.tracker = cfg.get("tracker", "tracker")
 	    self.s = libtorrent.session()
 	    self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
-	    
+	    print "Running"
 	
 	    
+    def lineReceived(self, line):
+	print "[Recv] ", line  
 	    
-	    
-	    
+    
+    def connectionLost(self, reason):
+	print "Connection lost ", reason
+	
+	
+    def lineReceived(self, line):
+	print "received", repr(line)
+	
+    def sendMessage(self, message):
+	self.transport.write(message+"\n")
+    
+    
     def upload_torrent(self, path):
 	if os.path.exists(path):
 	    tmp = open(path, "rb").read()
@@ -45,6 +59,11 @@ class tpm_daemon():
 
     
 
-
-tpmd = tpm_daemon()
+factory = protocol.ServerFactory()
+factory.protocol = tpm_daemon
+reactor.listenTCP(8001,factory)
 reactor.run()
+
+
+
+

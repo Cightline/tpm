@@ -14,7 +14,7 @@ class Json_Server(pb.Root):
 	self.sql = sqldatabase.Database(self.package_file)
 	self.random_package_num = 100000
 	self.parse_options()
-	
+	self.package_list = self.sql.return_packages()
 	
     def parse_options(self):
 	parser = optparse.OptionParser()
@@ -51,14 +51,16 @@ class Json_Server(pb.Root):
 	
 	
     #This remote function returns the package list to the client.
-    def remote_spew_package_list(self, req_size, send_length): #This is gonna be poorly written until I figure something out
+    def remote_spew_package_list(self, *args): #This is gonna be poorly written until I figure something out
+	if args[0]:
+	    req_size = args[0]
+	    
 	print "[Server] Spewing package list to client..."
-	package_list = self.sql.return_packages()
-	total = len(package_list)
+	total = len(self.package_list)
 	chunk = req_size
-	#print "Sending: %s" % package_list[chunk[0]:chunk[1]]
 	print "Chunk: %s, total: %s " % (chunk, total)
-	return jelly.jelly(package_list[chunk[0]:chunk[1]]), jelly.jelly(len(package_list)) 
+	
+	return self.package_list[chunk[0]:chunk[1]], len(self.package_list)
 	    
 	
     #This is for when a client creates (automatically) a new package torrent that does not already exist.
