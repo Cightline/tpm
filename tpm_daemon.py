@@ -5,7 +5,7 @@ import Pyro.core, check_config, libtorrent, os, ConfigParser
 class tpm_daemon(Pyro.core.ObjBase):
     def __init__(self):
 	Pyro.core.ObjBase.__init__(self)
-	self.daemon_config = "/home/stealth/.tpm/config"
+	self.daemon_config = "/etc/tpm/config"
 	
 	if os.getuid() != 0:
 	    print "Run me as root" 

@@ -11,18 +11,20 @@ class tpm():
     def __init__(self, obj, reactor):
 	self.obj = obj
 	self.conn = reactor
+	self.config = "/etc/tpm/config"
 	#Check to see if our config exists, then grab some args.
-	if check_config.check("~/.tpm/config"):
+	if check_config.check(self.config):
 	    cfg = ConfigParser.RawConfigParser()
-	    cfg.readfp(open(os.path.expanduser("~/.tpm/config")))
-	    self.json_server = cfg.get("json_server", "address")
-	    self.json_port = cfg.get("json_server", "port")
-	    self.sql = sql.Database(os.path.expanduser("~/.tpm/package.db"))
+	    cfg.readfp(open(self.config))
+	    self.json_server = cfg.get("server", "address")
+	    self.json_port = cfg.get("server", "port")
+	    self.sql = sql.Database("/etc/tpm/package.db")
 	    self.chunk_local = 0,10
-	    self.chunk_size = int(cfg.get("json_server", "chunk_size"))
+	    self.chunk_size = int(cfg.get("server", "chunk_size"))
 	    self.total = 0
 	    self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:7766/tpm_daemon")
-
+	else:
+	    self.check_done()
 	#Setup our command line options
 	parser = optparse.OptionParser()
 	
@@ -51,6 +53,12 @@ class tpm():
 				help="tpm -u [package], used to manually upload a package torrent for testing"
 				
 			)
+			
+	parser.add_option('-p', '--pacman',
+				action="store",
+				dest="pacman",
+				help="hook to add to pacman"
+			)
 	(self.options, self.args) = parser.parse_args()
 	
 	
@@ -69,7 +77,7 @@ class tpm():
 	    exit()
 	
 	
-	#This is redundant, I will make a "package list loader"
+	
     def list_packages(self): 
 	for p in self.sql.return_packages():
 	    print p["name"]
@@ -77,12 +85,12 @@ class tpm():
 	self.check_done()
 	
 	
-	#This is redundant, I will make a "package list loader"
+	
     def search_package(self, search):
 	self.found = 0
 	print "Searching..."
-	for p in sql.return_packages():
-	    if search == p["name"]:
+	for p in self.sql.return_packages():
+	    if search in p["name"]:
 		self.found += 1
 		print "[%s] version: %s " % (p["name"], p["version"])
 	if self.found == 0:
@@ -152,13 +160,18 @@ class tpm():
 	    print self.daemon.upload_torrent(self.options.upload_package)
 	    self.check_done()
 	
+	elif self.options.pacman:
+	    print self.options.pacman
     
 
 
 cfg = ConfigParser.RawConfigParser()
-cfg.readfp(open(os.path.expanduser("~/.tpm/config")))
+if check_config.check("/etc/tpm/config"):
+    cfg.readfp(open(("/etc/tpm/config")))
+else:
+    exit()
 factory = pb.PBClientFactory()
-connector = reactor.connectTCP(cfg.get("json_server", "address"), int(cfg.get("json_server", "port")), factory)
+connector = reactor.connectTCP(cfg.get("server", "address"), int(cfg.get("server", "port")), factory)
 factory.getRootObject().addCallback(tpm, connector)
 reactor.run()
     
