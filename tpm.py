@@ -1,3 +1,4 @@
+#!/usr/bin/env python2
 import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, check_config, tpm_sqldatabase as sql
 from twisted.internet import reactor, defer
 from twisted.spread import pb, jelly
@@ -25,6 +26,7 @@ class tpm():
 	    self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:7766/tpm_daemon")
 	else:
 	    self.check_done()
+	    
 	#Setup our command line options
 	parser = optparse.OptionParser()
 	
@@ -134,15 +136,12 @@ class tpm():
 	
 	
 	
-	#This calls the "remote" function on the Json_Server
+	#This calls the "remote" function on the server
     def d_update_package_list(self):
 	print "Updating..."
 	self.obj.callRemote("spew_package_list", self.chunk_local, True).addCallback(self.deal_with_list)
 	
-    def c_upload_torrent(self, *args):
-	if args[0] == False:
-	    print "Cannot upload something that does not exists"    
-    
+   
     
     def handle_args(self):
 	
@@ -165,11 +164,12 @@ class tpm():
     
 
 
-cfg = ConfigParser.RawConfigParser()
+
 if check_config.check("/etc/tpm/config"):
     cfg.readfp(open(("/etc/tpm/config")))
 else:
     exit()
+cfg = ConfigParser.RawConfigParser()
 factory = pb.PBClientFactory()
 connector = reactor.connectTCP(cfg.get("server", "address"), int(cfg.get("server", "port")), factory)
 factory.getRootObject().addCallback(tpm, connector)

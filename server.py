@@ -9,7 +9,7 @@ class Json_Server(pb.Root):
     def __init__(self):
 	#Load up the server conifg.
 	cfg = ConfigParser.RawConfigParser()
-	cfg.readfp(open(os.path.expanduser("~/.tpm_server/config")))
+	cfg.readfp(open("/etc/tpm_server/config"))
 	self.package_file = cfg.get("package", "dir")
 	self.sql = sqldatabase.Database(self.package_file)
 	self.random_package_num = 100000
@@ -36,15 +36,15 @@ class Json_Server(pb.Root):
     
     def add_dummy_packages(self, num):
 	print "Adding %s dummy packages..." % self.options.add_dummy
-	    import random
-	    for x in range(int(self.options.add_dummy)+1):
-		num = random.randrange(0, self.random_package_num)
-		try:
-		    self.sql.add_package("dummy_package%s" % (num), num, num)
-		    print "[dummypackage%s]: added" % (num)
-		except:
-		    print "[dummypackage%s]: NOT added" % (num)
-	    print "Done, added %s dummy packages" % x
+	import random
+	for x in range(int(self.options.add_dummy)+1):
+	    num = random.randrange(0, self.random_package_num)
+	    try:
+		self.sql.add_package("dummy_package%s" % (num), num, num)
+		print "[dummypackage%s]: added" % (num)
+	    except:
+		print "[dummypackage%s]: NOT added" % (num)
+	print "Done, added %s dummy packages" % x
     
     def invalidate_package_torrent(self, torrent):
 	pass 
