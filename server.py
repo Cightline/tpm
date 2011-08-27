@@ -5,23 +5,14 @@ from twisted.spread.util import FilePager
 
 
 
-class Json_Server(pb.Root):
+class Server(pb.Root):
     def __init__(self):
-<<<<<<< HEAD
-	#Load up the server conifg.
-	cfg = ConfigParser.RawConfigParser()
-	cfg.readfp(open("/etc/tpm_server/config"))
-	self.package_file = cfg.get("package", "dir")
-	self.sql = sqldatabase.Database(self.package_file)
-	self.random_package_num = 100000
-	self.parse_options()
-	self.package_list = self.sql.return_packages()
-	
-=======
+
+
         #Load up the server conifg.
         cfg = ConfigParser.RawConfigParser()
-        self.config_file = os.path.expanduser("~/.tpm_server/config")
-        if check_config.check(self.config_file):
+        self.config = "/etc/tpm_server/config"
+        if check_config.check(self.config):
             cfg.readfp(open(self.config))
             self.package_file = cfg.get("package", "dir")
             self.sql = sqldatabase.Database(self.package_file)
@@ -29,7 +20,7 @@ class Json_Server(pb.Root):
             self.parse_options()
             self.package_list = self.sql.return_packages()
         
->>>>>>> 95d4a3ff5123bde2b069f225bd81172619fee37a
+
     def parse_options(self):
         parser = optparse.OptionParser()
         
@@ -49,7 +40,7 @@ class Json_Server(pb.Root):
         #This function will tell the tracker that the package/torrent is invalid. 
     
     def add_dummy_packages(self, num):
-<<<<<<< HEAD
+
 	print "Adding %s dummy packages..." % self.options.add_dummy
 	import random
 	for x in range(int(self.options.add_dummy)+1):
@@ -60,18 +51,7 @@ class Json_Server(pb.Root):
 	    except:
 		print "[dummypackage%s]: NOT added" % (num)
 	print "Done, added %s dummy packages" % x
-=======
-        print "Adding %s dummy packages..." % self.options.add_dummy
-        import random
-        for x in range(int(self.options.add_dummy)+1):
-            num = random.randrange(0, self.random_package_num)
-            try:
-                self.sql.add_package("dummy_package%s" % (num), num, num)
-                print "[dummypackage%s]: added" % (num)
-            except:
-                print "[dummypackage%s]: NOT added" % (num)
-            print "Done, added %s dummy packages" % x
->>>>>>> 95d4a3ff5123bde2b069f225bd81172619fee37a
+
     
     def invalidate_package_torrent(self, torrent):
         pass 
@@ -102,5 +82,5 @@ class Json_Server(pb.Root):
 
 
 if __name__ == "__main__":
-    reactor.listenTCP(8000, pb.PBServerFactory(Json_Server()))
+    reactor.listenTCP(8000, pb.PBServerFactory(Server()))
     reactor.run()

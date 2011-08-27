@@ -164,12 +164,11 @@ class tpm():
     
 
 
-
+cfg = ConfigParser.RawConfigParser()
 if check_config.check("/etc/tpm/config"):
     cfg.readfp(open(("/etc/tpm/config")))
 else:
     exit()
-cfg = ConfigParser.RawConfigParser()
 factory = pb.PBClientFactory()
 connector = reactor.connectTCP(cfg.get("server", "address"), int(cfg.get("server", "port")), factory)
 factory.getRootObject().addCallback(tpm, connector)
