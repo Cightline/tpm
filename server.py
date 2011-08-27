@@ -28,7 +28,14 @@ class Json_Server(pb.Root):
 	(self.options, self.args) = parser.parse_args()
 	
 	if self.options.add_dummy:
-	    print "Adding %s dummy packages..." % self.options.add_dummy
+	    self.add_dummy_packages(self.options.add_dummy)
+	    
+	    
+    
+	#This function will tell the tracker that the package/torrent is invalid. 
+    
+    def add_dummy_packages(self, num):
+	print "Adding %s dummy packages..." % self.options.add_dummy
 	    import random
 	    for x in range(int(self.options.add_dummy)+1):
 		num = random.randrange(0, self.random_package_num)
@@ -38,11 +45,6 @@ class Json_Server(pb.Root):
 		except:
 		    print "[dummypackage%s]: NOT added" % (num)
 	    print "Done, added %s dummy packages" % x
-	    
-    
-	#This function will tell the tracker that the package/torrent is invalid. 
-    
-    
     
     def invalidate_package_torrent(self, torrent):
 	pass 
