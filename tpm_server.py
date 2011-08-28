@@ -1,5 +1,4 @@
-import os, json, ConfigParser, sqldatabase, optparse, check_config, Pyro.core
-
+import os, json, ConfigParser, server_sql as sql, optparse, Pyro.core, check_config
 
 
 class Server(Pyro.core.ObjBase):
@@ -13,7 +12,7 @@ class Server(Pyro.core.ObjBase):
         if check_config.check(self.config):
             cfg.readfp(open(self.config))
             self.package_file = cfg.get("package", "dir")
-            self.sql = sqldatabase.Database(self.package_file)
+            self.sql = sql.Database(self.package_file)
             self.random_package_num = 100000
             self.parse_options()
             self.package_list = self.sql.return_packages()

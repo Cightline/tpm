@@ -1,8 +1,11 @@
-Tpm is a general package manager designed for every linux distro out there. Currently it is not in a functional stage, although most of it works (It just needs to be implemented for each distro, which will hopefully be pushed to me).
+Goals:
+-to reduce server load, which in turn saves money.
+-increase speeds for large pacakges 
+-provide minimal changes to the end user
+-implement distro specific code
 
-I plan on using gpg for the package signing when this is implemented for Arch Linux, iirc Arch does not have this. Implemation for each distro will be in a distro.py format that will be imported automatically.
-This currenltly uses a tpm_daemon as the torrent client. The server.py is for the actual server running opentracker. tpm.py is what the client will be using to download package lists, etc...
-
-I plan on having this integrate with pacman/yaourt, apt-get, yum, etc... to provide minimal changes to the end user. 
-
-Current deps are libtorrent, Twisted, and Pyro
+Dependencies:
+-Python2
+-Pyro
+-Twisted
+-libtorrent

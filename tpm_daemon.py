@@ -1,7 +1,4 @@
-import Pyro.core, check_config, libtorrent, os, ConfigParser
-from twisted.spread import pb, jelly
-from twisted.internet import reactor
-
+import Pyro.core, libtorrent, os, ConfigParser, check_config
 
 class tpm_daemon(Pyro.core.ObjBase):
     def __init__(self):
@@ -26,11 +23,6 @@ class tpm_daemon(Pyro.core.ObjBase):
 	    self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
 	    print "Running"
 	
-    
-    def d_remote(self, obj):
-	print "Remote obj initilized"
-	#obj.callRemote("announce_new_package", 
-    
     
     def upload_torrent(self, path):
 	factory = pb.PBClientFactory()
@@ -59,7 +51,7 @@ class tpm_daemon(Pyro.core.ObjBase):
 Pyro.core.initServer()
 daemon=Pyro.core.Daemon()
 uri = daemon.connect(tpm_daemon(), "tpm_daemon")
-print "Port: %s URI: %s" % (daemon.port, uri)
+#print "Port: %s URI: %s" % (daemon.port, uri)
 daemon.requestLoop()
 
 

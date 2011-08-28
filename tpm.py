@@ -1,5 +1,6 @@
 #!/usr/bin/env python2
-import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, check_config, tpm_sqldatabase as sql
+import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql
+from imports import check_config
 from twisted.internet import reactor, defer
 from twisted.python import util    
 
