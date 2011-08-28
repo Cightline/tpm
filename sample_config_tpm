@@ -1,9 +1,0 @@
-
-[tracker]
-ports = 6881 6891
-tracker = udp://someserver.org:6969
-
-[json_server]
-port = 8000
-address = localhost
-
