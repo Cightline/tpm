@@ -1,6 +1,6 @@
 Goals:
 -to reduce server load, which in turn saves money.
--increase speeds for large pacakges 
+-increase speeds for large packages 
 -provide minimal changes to the end user
 -implement distro specific code
 
