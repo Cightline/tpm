@@ -48,11 +48,11 @@ def create_server_config():
     sections = ["package"]
     for s in sections:
 	cfg.add_section(s)
-	cfg.set("package", "dir", "/etc/tpm_server/package.db")
-	cfg.write(fp)
-	fp.close()
-	print "[check_config] Done, re-run me"
-	exit()
+    cfg.set("package", "dir", "/etc/tpm_server/package.db")
+    cfg.write(fp)
+    fp.close()
+    print "[check_config] Done, re-run me"
+    exit()
 
 def init_server():
     if os.path.exists("/etc/tpm_server"):
