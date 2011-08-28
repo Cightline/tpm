@@ -25,12 +25,10 @@ class tpm_daemon(Pyro.core.ObjBase):
 	
     
     def upload_torrent(self, path):
-	factory = pb.PBClientFactory()
 	if os.path.exists(path):
 	    tmp = open(path, "rb").read()
 	    if self.create_package_torrent(path):
-		reactor.connectTCP(self.cfg.get("server", "address"), int(self.cfg.get("server", "port")), factory)
-		d = factory.getRootObject()
+		pass #implement this
 	else:
 	    return "Cannot upload a file that does not exist"
 	

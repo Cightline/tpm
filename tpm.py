@@ -9,9 +9,7 @@ from twisted.python import util
 
 class tpm():
     def __init__(self):
-	if os.getuid() != 0:
-	    print "Run me as root"
-	    exit()
+	
 	    
 	self.conn = reactor
 	self.config = "/etc/tpm/config"
@@ -150,6 +148,12 @@ class tpm():
 	
 	else:
 	    print "No args"
+	    exit()
+
+
+
+if os.getuid() != 0:
+	    print "Run me as root"
 	    exit()
 
 tpm()

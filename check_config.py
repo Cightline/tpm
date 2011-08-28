@@ -19,7 +19,7 @@ def init_tpm():
 	    exit()
 	    
 	import ConfigParser
-	print "[check_config] Creating default config..."
+	print "[check_config] Creating default tpm config..."
 	cfg = ConfigParser.RawConfigParser()
 	sections = ["tracker", "server"]
 	for s in sections:
@@ -34,5 +34,32 @@ def init_tpm():
 	print "[check_config] Done, re-run me"
 	exit()
 
+
+def create_server_config():
+    try:
+	fp = open("/etc/tpm_server/config", "w")
+    except:
+	print "[config_check] I cannot open /etc/tpm/config, for writting"
+	exit()
+		
+    import ConfigParser 
+    print "[check_config] Creating default server config..."
+    cfg = ConfigParser.RawConfigParser()
+    sections = ["package"]
+    for s in sections:
+	cfg.add_section(s)
+	cfg.set("package", "dir", "/etc/tpm_server/package.db")
+	cfg.write(fp)
+	fp.close()
+	print "[check_config] Done, re-run me"
+	exit()
+
 def init_server():
-    pass
+    if os.path.exists("/etc/tpm_server"):
+	if os.path.exists("/etc/tpm_server/config"):
+	    return True
+	else:
+	    create_server_config()
+    else:
+	os.mkdir("/etc/tpm_server")
+	create_server_config()

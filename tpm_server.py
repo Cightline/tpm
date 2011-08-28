@@ -3,12 +3,14 @@ import os, json, ConfigParser, server_sql as sql, optparse, Pyro.core, check_con
 
 class Server(Pyro.core.ObjBase):
     def __init__(self):
+	
 	Pyro.core.ObjBase.__init__(self)
 	
 
         #Load up the server conifg.
         cfg = ConfigParser.RawConfigParser()
         self.config = "/etc/tpm_server/config"
+	check_config.init_server()
         if check_config.check(self.config):
             cfg.readfp(open(self.config))
             self.package_file = cfg.get("package", "dir")
@@ -55,6 +57,10 @@ class Server(Pyro.core.ObjBase):
     def announce_new_package(self):
         pass 
     
+
+if os.getuid() != 0:
+	    print "Run me as root"
+	    exit()
 
 Pyro.core.initServer()
 daemon=Pyro.core.Daemon()
