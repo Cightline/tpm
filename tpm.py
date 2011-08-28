@@ -1,7 +1,6 @@
 #!/usr/bin/env python2
 import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, check_config, tpm_sqldatabase as sql
 from twisted.internet import reactor, defer
-from twisted.spread import pb, jelly
 from twisted.python import util    
 
 
@@ -9,8 +8,7 @@ from twisted.python import util
 
 
 class tpm():
-    def __init__(self, obj, reactor):
-	self.obj = obj
+    def __init__(self):
 	self.conn = reactor
 	self.config = "/etc/tpm/config"
 	#Check to see if our config exists, then grab some args.
@@ -31,7 +29,7 @@ class tpm():
 	parser = optparse.OptionParser()
 	
 	
-	parser.add_option('-d', '--update',
+	parser.add_option('--update',
 				action="store_true",
 				dest='update_package_list', 
 				help="Update your local package list", 
@@ -49,18 +47,13 @@ class tpm():
 				help="List packages"
 			)
 	
-	parser.add_option('-u', '--upload',
+	parser.add_option('--upload',
 				action="store",
 				dest="upload_package",
 				help="tpm -u [package], used to manually upload a package torrent for testing"
 				
 			)
 			
-	parser.add_option('-p', '--pacman',
-				action="store",
-				dest="pacman",
-				help="hook to add to pacman"
-			)
 	(self.options, self.args) = parser.parse_args()
 	
 	
@@ -78,8 +71,6 @@ class tpm():
 	else:
 	    exit()
 	
-	
-	
     def list_packages(self): 
 	for p in self.sql.return_packages():
 	    print p["name"]
@@ -95,13 +86,11 @@ class tpm():
 	    if search in p["name"]:
 		self.found += 1
 		print "[%s] version: %s " % (p["name"], p["version"])
+		
 	if self.found == 0:
 	    print "Package not found"
 	    
 	self.check_done()
-	
-	
-	
     
     def add_to_local(self, data):
 	total_added = 0 
@@ -115,33 +104,32 @@ class tpm():
     
     
     def deal_with_list(self, *args):
-	if args[0][-1]:
-	    package_length = args[0][-1]
 	
-	if args[0]:
-	    data = args[0][0]
-	    total_added, total = self.add_to_local(data)
-	    self.chunk_local = self.total, self.total+self.chunk_size
+	package_length = args[0][-1]
 	
-	#print package_length
-	#print "Total added : %s Total: %s " % (self.total, package_length)
+	if package_length == 0:
+	    print "No packages server side"
+	    return self.check_done()
+	    
+	data = args[0][0]
+	total_added, total = self.add_to_local(data)
+	self.chunk_local = self.total, self.total+self.chunk_size
+	
 	print "%s%%" % (int(round((self.total / float(package_length)) * 100)))
 	
 	if self.total == package_length:
 	    print "Done, updated %s packages" % self.total
 	    return self.check_done()
 	
-	self.obj.callRemote("spew_package_list", self.chunk_local).addCallback(self.deal_with_list)
 	
 	
-	
-	
-	#This calls the "remote" function on the server
     def d_update_package_list(self):
 	print "Updating..."
-	self.obj.callRemote("spew_package_list", self.chunk_local, True).addCallback(self.deal_with_list)
-	
-   
+	import urllib2
+	open("/etc/tpm/package.db", "wb").write(urllib2.urlopen("http://%s/tpm_server/package.db" % (self.json_server)).read())
+	self.sql = sql.Database("/etc/tpm/package.db")
+	print "Done, retrieved %s packages" % (len(self.sql.return_packages()))
+	self.check_done()
     
     def handle_args(self):
 	
@@ -155,22 +143,11 @@ class tpm():
 	    self.list_packages()
 	    
 	elif self.options.upload_package:
-	    #self.obj.callRemote("upload_torrent", self.options.upload_package).addCallback(self.c_upload_torrent)
 	    print self.daemon.upload_torrent(self.options.upload_package)
 	    self.check_done()
 	
-	elif self.options.pacman:
-	    print self.options.pacman
-    
 
 
-cfg = ConfigParser.RawConfigParser()
-if check_config.check("/etc/tpm/config"):
-    cfg.readfp(open(("/etc/tpm/config")))
-else:
-    exit()
-factory = pb.PBClientFactory()
-connector = reactor.connectTCP(cfg.get("server", "address"), int(cfg.get("server", "port")), factory)
-factory.getRootObject().addCallback(tpm, connector)
+tpm()
 reactor.run()
     

@@ -1,13 +1,11 @@
-import os, json, ConfigParser, sqldatabase, optparse, check_config
-from twisted.internet import reactor, interfaces 
-from twisted.spread import pb, jelly
-from twisted.spread.util import FilePager
+import os, json, ConfigParser, sqldatabase, optparse, check_config, Pyro.core
 
 
 
-class Server(pb.Root):
+class Server(Pyro.core.ObjBase):
     def __init__(self):
-
+	Pyro.core.ObjBase.__init__(self)
+	
 
         #Load up the server conifg.
         cfg = ConfigParser.RawConfigParser()
@@ -35,52 +33,33 @@ class Server(pb.Root):
         if self.options.add_dummy:
             self.add_dummy_packages(self.options.add_dummy)
             
-            
-    
-        #This function will tell the tracker that the package/torrent is invalid. 
+	    
     
     def add_dummy_packages(self, num):
-
+	total = 0
 	print "Adding %s dummy packages..." % self.options.add_dummy
 	import random
-	for x in range(int(self.options.add_dummy)+1):
+	for x in range(int(self.options.add_dummy)):
 	    num = random.randrange(0, self.random_package_num)
-	    try:
-		self.sql.add_package("dummy_package%s" % (num), num, num)
-		print "[dummypackage%s]: added" % (num)
-	    except:
-		print "[dummypackage%s]: NOT added" % (num)
-	print "Done, added %s dummy packages" % x
+	    if self.sql.add_package("dummy_package%s" % (num), num, num):
+		total += 1
+	    
+	print "Done, added %s dummy packages" % total
 
     
     def invalidate_package_torrent(self, torrent):
         pass 
-    
-    
-    
-    
-    #This remote function returns the package list to the client.
-    def remote_spew_package_list(self, *args): #This is gonna be poorly written until I figure something out
-        if args[0]:
-            req_size = args[0]
-            
-        print "[Server] Spewing package list to client..."
-        total = len(self.package_list)
-        chunk = req_size
-        print "Chunk: %s, total: %s " % (chunk, total)
-        
-        return self.package_list[chunk[0]:chunk[1]], len(self.package_list)
+
     
     
     #This is for when a client creates (automatically) a new package torrent that does not already exist.
-    def remote_announce_new_package(self):
+    def announce_new_package(self):
         pass 
     
 
+Pyro.core.initServer()
+daemon=Pyro.core.Daemon()
+uri = daemon.connect(Server(), "tpm_server")
+print "Port: %s URI: %s" % (daemon.port, uri)
+daemon.requestLoop()
 
-
-
-
-if __name__ == "__main__":
-    reactor.listenTCP(8000, pb.PBServerFactory(Server()))
-    reactor.run()
