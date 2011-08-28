@@ -3,6 +3,7 @@ Goals:
 -increase speeds for large packages 
 -provide minimal changes to the end user
 -implement distro specific code
+-add package sigining to pacman (Arch Linux)
 
 Dependencies:
 -Python2
