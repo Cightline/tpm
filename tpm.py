@@ -1,6 +1,5 @@
 #!/usr/bin/env python2
-import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql
-from imports import check_config
+import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql, check_config
 from twisted.internet import reactor, defer
 from twisted.python import util    
 
@@ -10,18 +9,20 @@ from twisted.python import util
 
 class tpm():
     def __init__(self):
+	if os.getuid() != 0:
+	    print "Run me as root"
+	    exit()
+	    
 	self.conn = reactor
 	self.config = "/etc/tpm/config"
 	#Check to see if our config exists, then grab some args.
+	check_config.init_tpm()
 	if check_config.check(self.config):
 	    cfg = ConfigParser.RawConfigParser()
 	    cfg.readfp(open(self.config))
 	    self.json_server = cfg.get("server", "address")
 	    self.json_port = cfg.get("server", "port")
 	    self.sql = sql.Database("/etc/tpm/package.db")
-	    self.chunk_local = 0,10
-	    self.chunk_size = int(cfg.get("server", "chunk_size"))
-	    self.total = 0
 	    self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:7766/tpm_daemon")
 	else:
 	    self.check_done()
@@ -147,7 +148,9 @@ class tpm():
 	    print self.daemon.upload_torrent(self.options.upload_package)
 	    self.check_done()
 	
-
+	else:
+	    print "No args"
+	    exit()
 
 tpm()
 reactor.run()

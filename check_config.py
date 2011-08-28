@@ -5,15 +5,34 @@ def check(path):
 	if os.path.exists(os.path.expanduser(path)):
 	    return True
 	else:
-	    if os.path.exists("/etc/tpm"):
-		print "You do not have a config file"
-		return False
-		    
-	    else:
-		if os.getuid() == 0:
-		    os.mkdir("/etc/tpm")
-		    return False
-		else:
-		    print "You do not have a /etc/tpm directory, re-run me as root and I will create it, otherwise run mkdir /etc/tpm"
-		    return False
-	    return False
+	    return False 
+	    
+	    
+def init_tpm():
+    if os.path.exists("/etc/tpm/config"):
+	return True
+    else:
+	try:
+	    fp = open("/etc/tpm/config","w")
+	except:
+	    print "[config_check] I cannot open /etc/tpm/config, for writting"
+	    exit()
+	    
+	import ConfigParser
+	print "[check_config] Creating default config..."
+	cfg = ConfigParser.RawConfigParser()
+	sections = ["tracker", "server"]
+	for s in sections:
+	    cfg.add_section(s)
+	    
+	cfg.set("tracker", "port", "6881 6891")
+	cfg.set("tracker", "address", "udp://localhost:6969")
+	cfg.set("server", "port", "8000")
+	cfg.set("server", "address", "localhost")
+	cfg.write(fp)
+	fp.close()
+	print "[check_config] Done, re-run me"
+	exit()
+
+def init_server():
+    pass
