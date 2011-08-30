@@ -3,6 +3,8 @@ import sqlite3.dbapi2 as dbapi
 import os
 
 #This import will handle all the lower level (not that Python is low level :D ) queries.
+#implement sig, server needs to have package sigs sent to it. 
+
 
 class Database:
     def __init__(self, db_file):
@@ -14,7 +16,7 @@ class Database:
 	if os.path.exists(db_file):
 	    try:
 		self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
-		print "Loaded package database"
+		print "[sqlite3] Loaded package database"
 		self.cursor = self.connection.cursor()
 	    except:
 		print "There is a error in the package database, aborting"
@@ -29,20 +31,19 @@ class Database:
 		print "I cannot do anything"
 		exit()
 		
-	#self.add_package("dummy_package1", 1.0, "2394902340293j3kl4j23490")
-	#self.add_package("dummy_package2", 1.33, "3902099090902390239023")
+	
 	
     def initilize_database(self):
 	self.cursor = self.connection.cursor()
-	self.cursor.execute('''create table packages (name text NOT NULL UNIQUE COLLATE NOCASE, version text NOT NULL COLLATE NOCASE , hash text NOT NULL COLLATE NOCASE)''')
+	self.cursor.execute('''create table packages (name text NOT NULL UNIQUE COLLATE NOCASE, version text NOT NULL COLLATE NOCASE , hash text NOT NULL COLLATE NOCASE, sig text NOT NULL COLLATE NOCASE)''')
 	self.connection.commit()
 	print "Database initilized"
 	
     def return_packages(self): #I know this is not the best way to do this...
-	print "[sql] Gathered packages"
+	print "[sqlite3] Gathered packages"
 	packages = []
 	for p in self.cursor.execute('select * from packages order by name'):
-	    packages += [{"name":p[0], "version":p[1], "hash":p[2]}]
+	    packages += [{"name":p[0], "version":p[1], "hash":p[2], "sig":p[3]}]
 	return packages 
 	
    

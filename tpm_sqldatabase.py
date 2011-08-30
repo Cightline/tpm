@@ -16,7 +16,7 @@ class Database:
 		self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
 		self.cursor = self.connection.cursor()
 	    except:
-		print "The local package database is corrupt, try tpm -u"
+		print "The local package database is corrupt, try tpm --upgrade"
 	else:
 	    if raw_input("I could not find the package database, should I create one: ").lower().startswith("y"):
 		try:
@@ -32,7 +32,7 @@ class Database:
     def initilize_database(self):
 	self.cursor = self.connection.cursor()
 	self.cursor.execute('''create table packages (name text NOT NULL UNIQUE COLLATE NOCASE, version text NOT NULL UNIQUE COLLATE NOCASE , hash text NOT NULL UNIQUE COLLATE NOCASE)''')
-	self.cursor.commit()
+	self.connection.commit()
 	print "Database initilized"
 	
     def return_packages(self): #I know this is not the best way to do this...

@@ -25,14 +25,13 @@ def init_tpm():
 	for s in sections:
 	    cfg.add_section(s)
 	    
-	cfg.set("tracker", "port", "6881 6891")
+	cfg.set("tracker", "ports", "6881 6891")
 	cfg.set("tracker", "address", "udp://localhost:6969")
 	cfg.set("server", "port", "8000")
 	cfg.set("server", "address", "localhost")
 	cfg.write(fp)
 	fp.close()
-	print "[check_config] Done, re-run me"
-	exit()
+	print "[check_config] Done"
 
 
 def create_server_config():
@@ -51,8 +50,7 @@ def create_server_config():
     cfg.set("package", "dir", "/etc/tpm_server/package.db")
     cfg.write(fp)
     fp.close()
-    print "[check_config] Done, re-run me"
-    exit()
+    print "[check_config] Done"
 
 def init_server():
     if os.path.exists("/etc/tpm_server"):
@@ -63,3 +61,8 @@ def init_server():
     else:
 	os.mkdir("/etc/tpm_server")
 	create_server_config()
+
+def check_root():
+    if os.getuid() != 0:
+	print "run me as root" 
+	exit()

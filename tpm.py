@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql, check_config
+import Pyro.core, cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql, check_config, sys
 from twisted.internet import reactor, defer
 from twisted.python import util    
 
@@ -10,18 +10,19 @@ from twisted.python import util
 class tpm():
     def __init__(self):
 	
-	    
-	self.conn = reactor
-	self.config = "/etc/tpm/config"
-	#Check to see if our config exists, then grab some args.
+	
 	check_config.init_tpm()
+	self.config = "/etc/tpm/config"
+	
+	#Check to see if our config exists, then grab some args.
 	if check_config.check(self.config):
 	    cfg = ConfigParser.RawConfigParser()
 	    cfg.readfp(open(self.config))
 	    self.json_server = cfg.get("server", "address")
 	    self.json_port = cfg.get("server", "port")
 	    self.sql = sql.Database("/etc/tpm/package.db")
-	    self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:7766/tpm_daemon")
+	    self.daemon_port = open("/etc/tpm/d_port",'r').read()
+	    self.connect_daemon()
 	else:
 	    self.check_done()
 	    
@@ -54,12 +55,29 @@ class tpm():
 				
 			)
 			
+	parser.add_option('-p', '--package-manager',
+				action="store",
+				dest="package_manager",
+				help="package manager hook"
+			)
+			
 	(self.options, self.args) = parser.parse_args()
 	
 	
 	
 	self.handle_args()
 	
+    
+    
+    
+    def connect_daemon(self): #It will not stay connected to the server through out its lifetime, this is just temporary for debugging
+	self.daemon = Pyro.core.getProxyForURI("PYROLOC://localhost:%s/tpm_daemon" % self.daemon_port)
+	c_type = self.daemon.return_type()
+	if c_type == "tpmd":
+	    print "[tpm] Connected to daemon"
+	    return True
+	else:
+	    print "daemon returned wrong type %s" % c_type
     
     def check_done(self):
 	if reactor.running:
@@ -101,25 +119,6 @@ class tpm():
 	
 	self.total += total_added
 	return total_added, total
-    
-    
-    def deal_with_list(self, *args):
-	
-	package_length = args[0][-1]
-	
-	if package_length == 0:
-	    print "No packages server side"
-	    return self.check_done()
-	    
-	data = args[0][0]
-	total_added, total = self.add_to_local(data)
-	self.chunk_local = self.total, self.total+self.chunk_size
-	
-	print "%s%%" % (int(round((self.total / float(package_length)) * 100)))
-	
-	if self.total == package_length:
-	    print "Done, updated %s packages" % self.total
-	    return self.check_done()
 	
 	
 	
@@ -146,16 +145,30 @@ class tpm():
 	    print self.daemon.upload_torrent(self.options.upload_package)
 	    self.check_done()
 	
+	elif self.options.package_manager:
+	    
+	    #self.daemon.upload_torrent(self.options.package_manager.replace(".part",""))
+	    #print self.options.package_manager
+	    #print "[sys] %s" % sys.argv
+	    
+	    if sys.argv[-1].split(".")[-1] == "db":
+		#print "database %s" % sys.argv[-1]
+		pass
+	    else:
+		local_path = sys.argv[2].replace(".part","")
+		os.popen("/usr/bin/wget --passive-ftp -c -O %s %s" % (local_path, sys.argv[-1])) #(url, local path), Inefficent, will fix
+		print "Sending %s to tpm_daemon [port %s]..." % (local_path, self.daemon_port) 
+		self.daemon.upload_torrent(local_path)
+	    
+	    self.check_done()
+	    
 	else:
 	    print "No args"
 	    exit()
 
 
 
-if os.getuid() != 0:
-	    print "Run me as root"
-	    exit()
-
+check_config.check_root()
 tpm()
 reactor.run()
     
