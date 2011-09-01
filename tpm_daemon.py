@@ -1,8 +1,9 @@
-import Pyro.core, libtorrent, os, ConfigParser, check_config
+import libtorrent, os, ConfigParser, json, check_config
+from twisted.internet import reactor, protocol, defer
+from twisted.spread import jelly
 
-class tpm_daemon(Pyro.core.ObjBase):
+class tpm_daemon(protocol.Protocol):
     def __init__(self):
-	Pyro.core.ObjBase.__init__(self)
 	self.daemon_config = "/etc/tpm/config"
 	
 	check_config.init_tpm()
@@ -11,7 +12,6 @@ class tpm_daemon(Pyro.core.ObjBase):
 	if check_config.check(self.daemon_config):
 	    self.cfg = ConfigParser.RawConfigParser()
 	    self.cfg.readfp(open(self.daemon_config))
-	    self.connect_server() 
 	    self.ports = self.cfg.get("tracker", "ports")
 	    self.tracker = self.cfg.get("tracker", "address")
 	    self.s = libtorrent.session()
@@ -19,26 +19,28 @@ class tpm_daemon(Pyro.core.ObjBase):
 	    print "[tpmd] Running"
     
     
-    def return_type(self):
-	return "tpmd"
     
-    def connect_server(self): #It will not stay connected to the server through out its lifetime, this is just temporary for debugging
-	self.daemon = Pyro.core.getProxyForURI("PYROLOC://%s:7767/tpm_server" % (self.cfg.get("server", "address")))
-	c_type = self.daemon.return_type()
-	if c_type == "tpm_server":
-	    print "[tpmd] Connected to server"
-	    return True
-	else:
-	    print "Server returned wrong type %s" % c_type
+    
+    def check_torrent_exists(self, name):
+	d = defer.Deferred()
+	send_data = {}
+	self.name = name
+	print "Checking if package torrent %s exists server side..." % name
+	send_data["check_exists"] = self.name
+	print "send_data", send_data
+	self.transport.write(json.dumps(send_data))
+	return d
 	
-	
+    
+    def need_upload(self, path):
+	if not path:
+	    print "Uploading %s" % path
+	    self.upload_torrent(path)
     
     def upload_torrent(self, path):
 	if os.path.exists(path):
-	    if self.daemon.self.d(os.path.basename(path)) == False:
-		if self.create_package_torrent(path):
-		    self.daemon.announce_new_package(os.path.basename(path))
-		    print "New torrent announced"
+	    if self.create_package_torrent(path):
+		pass #implement
 	    else:
 		print "Torrent already exists"
 	else:
@@ -55,18 +57,53 @@ class tpm_daemon(Pyro.core.ObjBase):
 	open("%s.torrent" % (torrent_name), "wb").write(libtorrent.bencode(self.t.generate()))
 	print "Torrent %s created" % torrent_name
 	return True
-
-
-check_config.check_root()
+    
+    def delegate_data(self, data):
+	print "recv_data", data
+	data = json.loads(data)
 	
-Pyro.core.initServer()
-daemon=Pyro.core.Daemon()
-uri = daemon.connect(tpm_daemon(), "tpm_daemon")
-open("/etc/tpm/d_port",'w').write(str(daemon.port))
-print "Port: %s URI: %s" % (daemon.port, uri)
-daemon.requestLoop()
+	if self.name in data:
+	    print "Torrent %s = %s" % (self.name, data[self.name])
+	    self.upload_torrent(self.file_path)
+	
+	
+    def lineReceived(self, line):
+	print "line", line
+    
+    
+    
+    ##Twisted
+    
+    def connectionMade(self):
+	print "Connected"
 
+    def dataReceived(self, data):
+	self.delegate_data(data)
+	
+    def lineReceived(self, line):
+	self.delegate_data(data)
+ 
 
+class Daemon_Proto(protocol.Protocol):
+    
+    def connectionMade(self):
+	print "someone connected"
+	
+    def dataReceived(self, data):
+	print "s_data", data
+	
+    def lineReceived(self, line):
+	print "s_line", line
+
+if __name__ == "__main__":
+    check_config.check_root()
+    factory = protocol.ClientFactory()
+    d_factory = protocol.ServerFactory()
+    factory.protocol = tpm_daemon
+    d_factory.protocol = Daemon_Proto
+    reactor.listenTCP(8001, d_factory)
+    reactor.connectTCP("localhost", 8000, factory)
+    reactor.run()
 	
 	
 
