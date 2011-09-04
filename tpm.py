@@ -131,21 +131,7 @@ class tpm():
 	    self.instance.transport.write(json.dumps({"upload_package":self.options.upload_package}))
 	
 	elif self.options.package_manager:
-	    
-	    #self.daemon.upload_torrent(self.options.package_manager.replace(".part",""))
-	    #print self.options.package_manager
-	    #print "[sys] %s" % sys.argv
-	    
-	    if sys.argv[-1].split(".")[-1] == "db":
-		#print "database %s" % sys.argv[-1]
-		pass
-	    else:
-		local_path = sys.argv[2].replace(".part","")
-		os.popen("/usr/bin/wget --passive-ftp -c -O %s %s" % (local_path, sys.argv[-1])) #(url, local path), Inefficent, will fix
-		print "Sending %s to tpm_daemon [port %s]..." % (local_path, self.daemon_port) 
-		self.daemon.upload_torrent(local_path)
-	    
-	    self.check_done()
+	    pass
 	    
 	else:
 	    print "No args"

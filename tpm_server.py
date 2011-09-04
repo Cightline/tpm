@@ -1,26 +1,19 @@
-import os, json, ConfigParser, server_sql as sql, optparse, Pyro.core, check_config, gnupg
+import os, json, ConfigParser, server_sql as sql, optparse, check_config, gnupg
+
+from twisted.internet import reactor, protocol
+
+#TODO
+#Add logger
 
 
-class Server(Pyro.core.ObjBase):
+class Server():
     def __init__(self):
-<<<<<<< HEAD
-        
-        Pyro.core.ObjBase.__init__(self)
-        
-
-        #Load up the server conifg.
-        cfg = ConfigParser.RawConfigParser()
-        self.config = "/etc/tpm_server/config"
-        check_config.init_server()
-=======
-	#Init Pyro
-	Pyro.core.ObjBase.__init__(self)
 	
 	#Load up the server conifg.
 	check_config.init_server()
         cfg = ConfigParser.RawConfigParser()
         self.config = "/etc/tpm_server/config"
->>>>>>> no_indent
+	
         if check_config.check(self.config):
             cfg.readfp(open(self.config))
             self.package_file = cfg.get("package", "dir")
@@ -55,21 +48,6 @@ class Server(Pyro.core.ObjBase):
 	elif self.options.package_path:
 	    self.add_package(self.options.package_path)
             
-<<<<<<< HEAD
-            
-    
-    def add_dummy_packages(self, num):
-        total = 0
-        print "Adding %s dummy packages..." % self.options.add_dummy
-        import random
-        for x in range(int(self.options.add_dummy)):
-            num = random.randrange(0, self.random_package_num)
-            if self.sql.add_package("dummy_package%s" % (num), num, num):
-                total += 1
-            
-        print "Done, added %s dummy packages" % total
-
-=======
     
     def init_gnupg(self):
 	gpg = gnupg.GPG(gnupghome=os.path.expanduser("~/"))
@@ -86,19 +64,16 @@ class Server(Pyro.core.ObjBase):
 	    
 	print "Done, added %s dummy packages" % total
     
-    def add_package(self, path):
-	package_base = os.path.basename(path)
-	package_name = package_base.split("-")[0]
-	package_version = package_base.split(package_base.split("-")[-1].split(".pkg.tar.xz")[0])[0].split(package_name)[1].split()
-	print "Adding package: name: %s version: %s" % (package_name, package_version)
-	#if self.sql.add_package(package_name, 
-    
-    def d(self, torrent_name):
+    def add_package(self, path, name, version, location, sig):
+	pass
+	
+	
+    def does_torrent_exist(self, torrent_name):
 	if torrent_name in self.sql.return_packages(): 
 	    return True
 	else:
 	    return False
->>>>>>> no_indent
+
     
     def invalidate_package_torrent(self, torrent):
         pass 
@@ -110,17 +85,23 @@ class Server(Pyro.core.ObjBase):
         print "New torrent package %s" % package_name
     
 
-<<<<<<< HEAD
-if os.getuid() != 0:
-            print "Run me as root"
-            exit()
-=======
-check_config.check_root()
->>>>>>> no_indent
 
-Pyro.core.initServer()
-daemon=Pyro.core.Daemon()
-uri = daemon.connect(Server(), "tpm_server")
-print "Port: %s URI: %s" % (daemon.port, uri)
-daemon.requestLoop()
+
+
+
+
+class Server_Proto(protocol.Protocol):
+    
+    def connectionMade(self):
+	print "Client connected"
+
+if __name__ == "__main__":
+    check_config.check_root()
+    check_config.init_server()
+    factory = protocol.ServerFactory()
+    factory.protocol = Server_Proto
+    reactor.listenTCP(8000, factory)
+    reactor.run()
+	
+
 

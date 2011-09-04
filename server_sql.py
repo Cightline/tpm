@@ -9,46 +9,6 @@ import os
 class Database:
     def __init__(self, db_file):
         self.db_file = db_file
-        
-<<<<<<< HEAD
-        
-        #Verify that the package list is there, if not create one.
-        
-        if os.path.exists(db_file):
-            try:
-                self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
-                print "Loaded package database"
-                self.cursor = self.connection.cursor()
-            except:
-                print "There is a error in the package database, aborting"
-        else:
-            if raw_input("I could not find the package database, should I create one: ").lower().startswith("y"):
-                try:
-                    self.connection = dbapi.connect(self.db_file)
-                    self.initilize_database()
-                except:
-                    print "I could not create the database, does the directory %s need to be created?" % (self.db_file)
-            else:
-                print "I cannot do anything"
-                exit()
-                
-        #self.add_package("dummy_package1", 1.0, "2394902340293j3kl4j23490")
-        #self.add_package("dummy_package2", 1.33, "3902099090902390239023")
-        
-    def initilize_database(self):
-        self.cursor = self.connection.cursor()
-        self.cursor.execute('''create table packages (name text NOT NULL UNIQUE COLLATE NOCASE, version text NOT NULL COLLATE NOCASE , hash text NOT NULL COLLATE NOCASE)''')
-        self.connection.commit()
-        print "Database initilized"
-        
-    def return_packages(self): #I know this is not the best way to do this...
-        print "[sql] Gathered packages"
-        packages = []
-        for p in self.cursor.execute('select * from packages order by name'):
-            packages += [{"name":p[0], "version":p[1], "hash":p[2]}]
-        return packages 
-        
-=======
 	
 	#Verify that the package list is there, if not create one.
 	
@@ -84,9 +44,6 @@ class Database:
 	for p in self.cursor.execute('select * from packages order by name'):
 	    packages += [{"name":p[0], "version":p[1], "hash":p[2], "sig":p[3]}]
 	return packages 
-	
->>>>>>> no_indent
-   
         
     def add_package(self, p_name, p_version, p_hash):
         #print "Adding package name: %s version: %s hash: %s " % (p_name, p_version, p_hash)
