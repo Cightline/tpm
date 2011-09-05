@@ -96,7 +96,7 @@ class tpm():
 	total_added = 0 
 	total = len(data)
 	for package in data:
-	    self.sql.add_package(package["name"], package["version"], package["hash"])
+	    self.sql.add_package(package["name"], package["version"], package["hash"]) #fix
 	    total_added += 1
 	
 	self.total += total_added
@@ -139,6 +139,7 @@ class tpm():
 
 
 class tpm_Proto(protocol.Protocol):
+    
     def connectionMade(self):
 	print "Connected to daemon"
 	t.handle_instance(self)

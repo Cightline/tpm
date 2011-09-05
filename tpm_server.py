@@ -11,43 +11,41 @@ class Server():
 	
 	#Load up the server conifg.
 	check_config.init_server()
-        cfg = ConfigParser.RawConfigParser()
-        self.config = "/etc/tpm_server/config"
+	cfg = ConfigParser.RawConfigParser()
+	self.config = "/etc/tpm_server/config"
 	
-        if check_config.check(self.config):
-            cfg.readfp(open(self.config))
-            self.package_file = cfg.get("package", "dir")
-            self.sql = sql.Database(self.package_file)
-            self.random_package_num = 100000
+	if check_config.check(self.config):
+	    cfg.readfp(open(self.config))
+	    self.package_file = cfg.get("package", "dir")
+	    self.sql = sql.Database(self.package_file)
+	    self.random_package_num = 100000
 	    self.init_gnupg()
-            self.parse_options()
-        
-    def return_type(self):
-	return "tpm_server"
+	    self.parse_options()
+	
 
     def parse_options(self):
-        parser = optparse.OptionParser()
-        
-        parser.add_option('-d', '--dummy-package',
-                          action="store",
-                          dest='add_dummy', 
-                          help="Add [num] of dummy packages (used for stress testing)", 
-                          )
-        
+	parser = optparse.OptionParser()
+	
+	parser.add_option('-d', '--dummy-package',
+			  action="store",
+			  dest='add_dummy', 
+			  help="Add [num] of dummy packages (used for stress testing)", 
+			  )
+	
 	parser.add_option('--add-package',
 			  action="store",
 			  dest="package_path",
 			  help="Manually add a package"
 			  )
 	
-        (self.options, self.args) = parser.parse_args()
-        
-        if self.options.add_dummy:
-            self.add_dummy_packages(self.options.add_dummy)
+	(self.options, self.args) = parser.parse_args()
+	
+	if self.options.add_dummy:
+	    self.add_dummy_packages(self.options.add_dummy)
 	
 	elif self.options.package_path:
 	    self.add_package(self.options.package_path)
-            
+	    
     
     def init_gnupg(self):
 	gpg = gnupg.GPG(gnupghome=os.path.expanduser("~/"))
@@ -76,13 +74,13 @@ class Server():
 
     
     def invalidate_package_torrent(self, torrent):
-        pass 
+	pass 
 
     
     
     #This is for when a client creates (automatically) a new package torrent that does not already exist.
     def announce_new_package(self, package_name):
-        print "New torrent package %s" % package_name
+	print "New torrent package %s" % package_name
     
 
 
@@ -94,6 +92,11 @@ class Server_Proto(protocol.Protocol):
     
     def connectionMade(self):
 	print "Client connected"
+	
+    def dataReceived(self, data):
+	print "recv_data", data 
+	
+    
 
 if __name__ == "__main__":
     check_config.check_root()

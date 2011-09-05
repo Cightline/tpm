@@ -19,7 +19,8 @@ class tpm_daemon(protocol.Protocol):
 	    print "[tpmd] Running"
     
     
-    
+    def collect_server_object(self, instance):
+	self.server_instance = instance 
     
     def check_torrent_exists(self, name):
 	d = defer.Deferred()
@@ -31,40 +32,35 @@ class tpm_daemon(protocol.Protocol):
 	self.transport.write(json.dumps(send_data))
 	return d
 	
-    
-    def need_upload(self, path):
-	if not path:
-	    print "Uploading %s" % path
-	    self.upload_torrent(path)
-    
-    def upload_torrent(self, path):
-	if os.path.exists(path):
-	    if self.create_package_torrent(path):
-		pass #implement
-	    else:
-		print "Torrent already exists"
-	else:
-	    print "No such path"
+
 	
     def create_package_torrent(self, file_path):
+	#if os.path.exists(path):
+	#    if self.create_package_torrent(path):
+	#	pass #implement
+	#    else:
+	#	print "Torrent already exists"
+	#else:
+	#    print "No such path"
+	#
 	print "Creating .torrent for %s..." % file_path
 	fs = libtorrent.file_storage()
 	libtorrent.add_files(fs, file_path)
 	self.t = libtorrent.create_torrent(fs)
-	self.t.add_tracker(self.tracker)
+	#self.t.add_tracker(self.tracker)
 	self.t.set_creator("tpmd 1.0")
 	torrent_name = self.t.generate()["info"]["name"]
 	open("%s.torrent" % (torrent_name), "wb").write(libtorrent.bencode(self.t.generate()))
 	print "Torrent %s created" % torrent_name
 	return True
     
-    def delegate_data(self, data):
+    def delegate_client_data(self, data, obj):
 	print "recv_data", data
 	data = json.loads(data)
 	
-	if self.name in data:
-	    print "Torrent %s = %s" % (self.name, data[self.name])
-	    self.upload_torrent(self.file_path)
+	
+	if "upload_package" in data.keys():
+	    self.validate_torrent(data["upload_package"], obj)
 	
 	
     def lineReceived(self, line):
@@ -72,35 +68,36 @@ class tpm_daemon(protocol.Protocol):
     
     
     
-    ##Twisted
+class Server_Proto(protocol.Protocol):
     
     def connectionMade(self):
-	print "Connected"
-
-    def dataReceived(self, data):
-	self.delegate_data(data)
-	
-    def lineReceived(self, line):
-	self.delegate_data(data)
+	print "Connected to server"
+	t.collect_server_object(self)
  
+ 
+    def dataReceived(self, data):
+	print "server_data", data 
+	
 
-class Daemon_Proto(protocol.Protocol):
+
+class Client_Proto(protocol.Protocol):
     
     def connectionMade(self):
-	print "someone connected"
+	print "Client connected"
 	
     def dataReceived(self, data):
-	print "s_data", data
+	print "client_data", data
+	t.delegate_client_data(data, self)
 	
-    def lineReceived(self, line):
-	print "s_line", line
+
 
 if __name__ == "__main__":
     check_config.check_root()
+    t = tpm_daemon()
     factory = protocol.ClientFactory()
     d_factory = protocol.ServerFactory()
-    factory.protocol = tpm_daemon
-    d_factory.protocol = Daemon_Proto
+    factory.protocol = Server_Proto
+    d_factory.protocol = Client_Proto
     reactor.listenTCP(8001, d_factory)
     reactor.connectTCP("localhost", 8000, factory)
     reactor.run()
