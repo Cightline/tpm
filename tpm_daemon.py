@@ -14,13 +14,61 @@ class tpm_daemon(protocol.Protocol):
 	    self.cfg.readfp(open(self.daemon_config))
 	    self.ports = self.cfg.get("tracker", "ports")
 	    self.tracker = self.cfg.get("tracker", "address")
+	    self.sql = sql.Database("/etc/tpm/package.db")
 	    self.s = libtorrent.session()
 	    self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
 	    print "[tpmd] Running"
     
-    
-    
-    
+    def check_done(self):
+	if reactor.running:
+	    #It seems to throw a error, regardless of what you do, I'm thinking its something to do with the async properties it has. 
+	    try:
+		reactor.stop()
+	    except:
+		pass
+	else:
+	    exit()
+	
+    def list_packages(self): 
+	for p in self.sql.return_packages():
+	    print p["name"]
+
+	self.check_done()
+	
+	
+	
+    def search_package(self, search):
+	self.found = 0
+	print "Searching..."
+	for p in self.sql.return_packages():
+	    if search in p["name"]:
+		self.found += 1
+		print "[%s] version: %s " % (p["name"], p["version"])
+		
+	if self.found == 0:
+	    print "Package not found"
+	    
+	self.check_done()
+	
+    def d_update_package_list(self):
+	print "Updating..."
+	import urllib2
+	open("/etc/tpm/package.db", "wb").write(urllib2.urlopen("http://%s/tpm_server/package.db" % (self.json_server)).read())
+	self.sql = sql.Database("/etc/tpm/package.db")
+	print "Done, retrieved %s packages" % (len(self.sql.return_packages()))
+	self.check_done()
+
+    def add_to_local(self, data):
+	total_added = 0 
+	total = len(data)
+	for package in data:
+	    self.sql.add_package(package["name"], package["version"], package["hash"])
+	    total_added += 1
+	
+	self.total += total_added
+	return total_added, total
+
+
     def check_torrent_exists(self, name):
 	d = defer.Deferred()
 	send_data = {}
@@ -30,12 +78,6 @@ class tpm_daemon(protocol.Protocol):
 	print "send_data", send_data
 	self.transport.write(json.dumps(send_data))
 	return d
-	
-    
-    def need_upload(self, path):
-	if not path:
-	    print "Uploading %s" % path
-	    self.upload_torrent(path)
     
     def upload_torrent(self, path):
 	if os.path.exists(path):
