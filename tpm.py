@@ -61,7 +61,7 @@ class tpm():
 	
     
     def message(self, message):
-	self.instance.transport.write(message)
+	self.instance.transport.write(json.dumps(message))
     
     def check_done(self):
 	if reactor.running:
@@ -75,33 +75,46 @@ class tpm():
 	
     def list_torrents(self, torrent=None, callback=False):
 	
-	if callback:
-	    if torrent:
-		print torrent
-	    else:
-		print "No torrents found"
-		
+	if callback == False:
+	    self.message({"list":None})
+	
+	elif callback and torrent:
+	    for t in torrent:
+		print t["name"]
+	    self.check_done()
+		    
 	else:
-	    self.message(json.dumps({"list":None}))
+	    print "No torrents found"
+	    self.check_done()
+	
 	
 	
     def search_torrent(self, search, searching=True):
+	
 	if searching:
-	    self.message(json.dumps({"search":search}))
+	    self.message({"search":search})
+	
+	elif search:
+	    for t in search:
+		print t["name"]
+		
+	    self.check_done()
+	
 	else:
-	    if search:
-		print search
-		self.check_done()
-	    else:
-		print "Package not found"
-		self.check_done()
+	    print "Package not found"
+	    self.check_done()
+	
+    def update_torrent_database(self):
+	self.message({"update_torrents":None})
 	
     
     def handle_instance(self, instance):
 	self.instance = instance
 	self.handle_args()
+
     
     def delegate_data(self, data):
+	#print "data", data +"\n"
 	data = json.loads(data)
 	
 	if "search" in data.keys():
@@ -112,7 +125,7 @@ class tpm():
     def handle_args(self):
 	
 	if self.options.update_package_list:
-	    self.d_update_package_list()
+	    self.update_torrent_database()
 	    
 	elif self.options.search_package:
 	    self.search_torrent(self.options.search_package.lower())
@@ -133,7 +146,6 @@ class tpm():
 class tpm_Proto(protocol.Protocol):
     
     def connectionMade(self):
-	#print "Connected to daemon"
 	t.handle_instance(self)
     
     def dataReceived(self, data):

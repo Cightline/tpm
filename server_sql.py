@@ -45,15 +45,14 @@ class Database:
 	    packages += [{"name":p[0], "version":p[1], "hash":p[2], "sig":p[3]}]
 	return packages 
         
-    def add_package(self, p_name, p_version, p_hash):
+    def add_package(self, p_name, p_version, p_hash, p_sig):
         #print "Adding package name: %s version: %s hash: %s " % (p_name, p_version, p_hash)
-        
-        try:
-            self.cursor.execute("""insert into packages values (?,?,?)""", [p_name, p_version, p_hash]) 
+	
+	self.cursor.execute("""insert into packages values (?,?,?,?)""", [p_name, p_version, p_hash, p_sig]) 
             #self.cursor.execute("""UPDATE packages SET name=? AND version=? AND hash=?""", [p_name, p_version, p_hash])
-        except:
-            print "[Package] %s NOT added" % p_name
-            return False
+        #except:
+         #   print "[Package] %s NOT added" % p_name
+          #  return False
         
         self.connection.commit()
         print "[Package] %s added" % p_name

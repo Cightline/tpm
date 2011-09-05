@@ -83,7 +83,11 @@ class Server():
 	print "New torrent package %s" % package_name
     
 
-
+    def delegate_data(self, data, instance):
+	print "data", data
+	
+	
+	
 
 
 
@@ -95,12 +99,14 @@ class Server_Proto(protocol.Protocol):
 	
     def dataReceived(self, data):
 	print "recv_data", data 
+	s.delegate_data(data, self)
 	
     
 
 if __name__ == "__main__":
     check_config.check_root()
     check_config.init_server()
+    s = Server()
     factory = protocol.ServerFactory()
     factory.protocol = Server_Proto
     reactor.listenTCP(8000, factory)
