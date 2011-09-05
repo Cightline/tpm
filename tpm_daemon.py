@@ -1,4 +1,4 @@
-import libtorrent, os, ConfigParser, json, check_config
+import libtorrent, os, ConfigParser, json, check_config, tpm_sqldatabase as sql
 from twisted.internet import reactor, protocol, defer
 from twisted.spread import jelly
 
@@ -14,6 +14,7 @@ class tpm_daemon(protocol.Protocol):
 	    self.cfg.readfp(open(self.daemon_config))
 	    self.ports = self.cfg.get("tracker", "ports")
 	    self.tracker = self.cfg.get("tracker", "address")
+	    self.sql = sql.Database("/etc/tpm/torrents.db")
 	    self.s = libtorrent.session()
 	    self.s.listen_on(int(self.ports.split(" ")[0]), int(self.ports.split(" ")[1]))
 	    print "[tpmd] Running"
@@ -22,27 +23,34 @@ class tpm_daemon(protocol.Protocol):
     def collect_server_object(self, instance):
 	self.server_instance = instance 
     
-    def check_torrent_exists(self, name):
-	d = defer.Deferred()
-	send_data = {}
-	self.name = name
-	print "Checking if package torrent %s exists server side..." % name
-	send_data["check_exists"] = self.name
-	print "send_data", send_data
-	self.transport.write(json.dumps(send_data))
-	return d
+    def collect_client_object(self, instance):
+	self.client_instance = instance
 	
-
+	
+    def list_torrents(self):
+	packages = self.sql.return_packages()
+	
+	if len(packages) == 0:
+	    self.client_instance.transport.write(json.dumps({"list":None}))
+	else:
+	    for package in self.sql.return_packages():
+		self.client_instance.transport.write(json.dumps({"list":package}))
+    
+	
+    def search_torrent(self, name):
+	print "Searching for torrent [%s]" % (name)
+	f = 0
+	for p in self.sql.return_packages():
+	    if name in p["name"]:
+		f += 1
+		self.client_instance.transport.write(json.dumps({"list":[p["name"], p["version"]]})
+	
+	if f == 0:
+	    print "Torrent [%s] not found" % (name)
+	    self.client_instance.transport.write(json.dumps({"search":None}))
 	
     def create_package_torrent(self, file_path):
-	#if os.path.exists(path):
-	#    if self.create_package_torrent(path):
-	#	pass #implement
-	#    else:
-	#	print "Torrent already exists"
-	#else:
-	#    print "No such path"
-	#
+	
 	print "Creating .torrent for %s..." % file_path
 	fs = libtorrent.file_storage()
         if os.path.exists(file_path):
@@ -64,14 +72,14 @@ class tpm_daemon(protocol.Protocol):
 	data = json.loads(data)
 	
 	
-	if "upload_package" in data.keys():
+	if "upload" in data.keys():
 	    self.validate_torrent(data["upload_package"], obj)
+	if "search" in data.keys():
+	    self.search_torrent(data["search"])
+	if "list" in data.keys():
+	    self.list_torrents()
 	
-	
-    def lineReceived(self, line):
-	print "line", line
-    
-    
+
     
 class Server_Proto(protocol.Protocol):
     
@@ -89,6 +97,7 @@ class Client_Proto(protocol.Protocol):
     
     def connectionMade(self):
 	print "Client connected"
+	t.collect_client_object(self)
 	
     def dataReceived(self, data):
 	print "client_data", data

@@ -1,10 +1,11 @@
 #!/usr/bin/env python2
-import cPickle, os, ConfigParser, json, optparse, cStringIO, tpm_sqldatabase as sql, check_config, sys
+import cPickle, os, ConfigParser, json, optparse, cStringIO,check_config, sys
 from twisted.internet import reactor, defer, protocol
 from twisted.python import util    
 
 
-    
+#This is the "mask" to tpmd. It communicates with the daemon. This is needed because the daemon is a torrent seeder/leacher. 
+#It simply tells the daemon what it needs and kindly waits for a reply. 
 
 
 class tpm():
@@ -18,7 +19,6 @@ class tpm():
 	    cfg.readfp(open(self.config))
 	    self.json_server = cfg.get("server", "address")
 	    self.json_port = cfg.get("server", "port")
-	    self.sql = sql.Database("/etc/tpm/package.db")
 	    self.daemon_port = open("/etc/tpm/d_port",'r').read()
 	
 	    
@@ -59,7 +59,9 @@ class tpm():
 			
 	(self.options, self.args) = parser.parse_args()
 	
-
+    
+    def message(self, message):
+	self.instance.transport.write(message)
     
     def check_done(self):
 	if reactor.running:
@@ -71,50 +73,41 @@ class tpm():
 	else:
 	    exit()
 	
-    def list_packages(self): 
-	for p in self.sql.return_packages():
-	    print p["name"]
-
-	self.check_done()
+    def list_torrents(self, torrent=None, callback=False):
 	
-	
-	
-    def search_package(self, search):
-	self.found = 0
-	print "Searching..."
-	for p in self.sql.return_packages():
-	    if search in p["name"]:
-		self.found += 1
-		print "[%s] version: %s " % (p["name"], p["version"])
+	if callback:
+	    if torrent:
+		print torrent
+	    else:
+		print "No torrents found"
 		
-	if self.found == 0:
-	    print "Package not found"
-	    
-	self.check_done()
-    
-    def add_to_local(self, data):
-	total_added = 0 
-	total = len(data)
-	for package in data:
-	    self.sql.add_package(package["name"], package["version"], package["hash"]) #fix
-	    total_added += 1
-	
-	self.total += total_added
-	return total_added, total
+	else:
+	    self.message(json.dumps({"list":None}))
 	
 	
+    def search_torrent(self, search, searching=True):
+	if searching:
+	    self.message(json.dumps({"search":search}))
+	else:
+	    if search:
+		print search
+		self.check_done()
+	    else:
+		print "Package not found"
+		self.check_done()
 	
-    def d_update_package_list(self):
-	print "Updating..."
-	import urllib2
-	open("/etc/tpm/package.db", "wb").write(urllib2.urlopen("http://%s/tpm_server/package.db" % (self.json_server)).read())
-	self.sql = sql.Database("/etc/tpm/package.db")
-	print "Done, retrieved %s packages" % (len(self.sql.return_packages()))
-	self.check_done()
     
     def handle_instance(self, instance):
 	self.instance = instance
 	self.handle_args()
+    
+    def delegate_data(self, data):
+	data = json.loads(data)
+	
+	if "search" in data.keys():
+	    self.search_torrent(data["search"], False)
+	if "list" in data.keys():
+	    self.list_torrents(data["list"], True)
     
     def handle_args(self):
 	
@@ -122,10 +115,10 @@ class tpm():
 	    self.d_update_package_list()
 	    
 	elif self.options.search_package:
-	    self.search_package(self.options.search_package.lower())
+	    self.search_torrent(self.options.search_package.lower())
 	    
 	elif self.options.list_packages:
-	    self.list_packages()
+	    self.list_torrents()
 	    
 	elif self.options.upload_package:
 	    self.instance.transport.write(json.dumps({"upload_package":self.options.upload_package}))
@@ -134,16 +127,17 @@ class tpm():
 	    pass
 	    
 	else:
-	    print "No args"
-	    exit()
+	    exit() #implement the help arg here
 
 
 class tpm_Proto(protocol.Protocol):
     
     def connectionMade(self):
-	print "Connected to daemon"
+	#print "Connected to daemon"
 	t.handle_instance(self)
-
+    
+    def dataReceived(self, data):
+	t.delegate_data(data)
 
 if __name__ == "__main__":
     check_config.check_root()
