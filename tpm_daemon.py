@@ -45,12 +45,17 @@ class tpm_daemon(protocol.Protocol):
 	#
 	print "Creating .torrent for %s..." % file_path
 	fs = libtorrent.file_storage()
-	libtorrent.add_files(fs, file_path)
+        if os.path.exists(file_path):
+            print "Path %s does not exists." % file_path
+            return False
+
+        libtorrent.add_files(fs, file_path)
 	self.t = libtorrent.create_torrent(fs)
 	#self.t.add_tracker(self.tracker)
 	self.t.set_creator("tpmd 1.0")
 	torrent_name = self.t.generate()["info"]["name"]
-	open("%s.torrent" % (torrent_name), "wb").write(libtorrent.bencode(self.t.generate()))
+	with open("%s.torrent" % (torrent_name), "wb") as torrent_file:
+            torrent_file.write(libtorrent.bencode(self.t.generate()))
 	print "Torrent %s created" % torrent_name
 	return True
     
