@@ -1,10 +1,12 @@
-Goals:
+[Goals]:
 -to reduce server load
 -increase speeds for large packages 
 -provide minimal changes to the end user
 -implement distro specific code
 
-Dependencies:
+[Dependencies]:
 -Python2
 -Twisted
 -libtorrent
+-python-gnupg
+-python-progressbar (Yes I'm that lazy)
