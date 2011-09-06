@@ -19,43 +19,42 @@ class tpm():
 	    cfg.readfp(open(self.config))
 	    self.json_server = cfg.get("server", "address")
 	    self.json_port = cfg.get("server", "port")
-	    self.daemon_port = open("/etc/tpm/d_port",'r').read()
 	
-	    
+	self.SUCCESS = {"update_database":"Database updated"}
+	self.ERROR = {"update_database":"Could not update database"}
+	
+	self.q = []
+	
+	
 	#Setup our command line options
 	parser = optparse.OptionParser()
 	
 	
 	parser.add_option('--update',
 				action="store_true",
-				dest='update_package_list', 
-				help="Update your local package list", 
+				dest='update_database', 
+				help="Update your local torrent list", 
 			)
 			
 	parser.add_option('-s', '--search',
 				action="store",
-				dest="search_package",
+				dest="search_torrent",
 				help="Search for a package",
 			)
 			
 	parser.add_option('-l', '--list',
 				action="store_true",
-				dest="list_packages",
+				dest="list_torrents",
 				help="List packages"
 			)
-	
-	parser.add_option('--upload',
+
+			
+	parser.add_option('--torrent-largest',
 				action="store",
-				dest="upload_package",
-				help="tpm -u [package], used to manually upload a package torrent for testing"
-				
+				dest="torrent_largest",
+				help="--spider [path] find the biggest file and torrent it)"
 			)
 			
-	parser.add_option('-p', '--package-manager',
-				action="store",
-				dest="package_manager",
-				help="package manager hook"
-			)
 			
 	(self.options, self.args) = parser.parse_args()
 	
@@ -64,14 +63,14 @@ class tpm():
 	self.instance.transport.write(json.dumps(message))
     
     def check_done(self):
-	if reactor.running:
-	    #It seems to throw a error, regardless of what you do, I'm thinking its something to do with the async properties it has. 
+	
+	if len(self.q) == 0:
 	    try:
 		reactor.stop()
 	    except:
-		pass
+		exit()
 	else:
-	    exit()
+	    return False
 	
     def list_torrents(self, torrent=None, callback=False):
 	
@@ -81,66 +80,99 @@ class tpm():
 	elif callback and torrent:
 	    for t in torrent:
 		print t["name"]
-	    self.check_done()
-		    
+	    self.remove_check("list_torrents")
+	    
 	else:
 	    print "No torrents found"
-	    self.check_done()
-	
+	    self.remove_check("list_torrents")
 	
 	
     def search_torrent(self, search, searching=True):
-	
+
 	if searching:
 	    self.message({"search":search})
 	
+	elif search == []:
+	    print "Package not found"
+	    self.remove_check("search_torrent")
+	    
 	elif search:
 	    for t in search:
-		print t["name"]
-		
-	    self.check_done()
+		print t
+	    self.remove_check("search_torrent")
+	    
 	
+    def update_database(self, value=None, callback=False):
+	
+	if callback:
+	    
+	    if value:
+		print "Wrote %s packages" % value[1]
+		self.remove_check("update_database")
+	    else:
+		print "Nothing updated"
+		self.remove_check("update_database")
 	else:
-	    print "Package not found"
-	    self.check_done()
+	    print "Updating..."
+	    self.message({"update_database":None})
 	
-    def update_torrent_database(self):
-	self.message({"update_torrents":None})
+    
+    
+    def torrent_largest(self, data):
+	if raw_input('Would you like to torrent "%s" [%s]: ' % (data[0], data[1])).startswith("y"):
+	    self.message({"torrent_largest_c":True})
 	
+    
+	else:
+	    self.message({"torrent_largest_c":False})
+    
+    def remove_check(self, q):
+	self.q.remove(q)
+	self.check_done()
+
     
     def handle_instance(self, instance):
 	self.instance = instance
 	self.handle_args()
 
-    
+	
     def delegate_data(self, data):
-	#print "data", data +"\n"
+	print "data", data 
 	data = json.loads(data)
 	
 	if "search" in data.keys():
 	    self.search_torrent(data["search"], False)
+	    
 	if "list" in data.keys():
 	    self.list_torrents(data["list"], True)
+	    
+	if "update" in data.keys():
+	    self.update_database(data["update"], True)
+	    
+	if "spider" in data.keys():
+	    self.spider(data["spider"])
+	    
+	if "torrent_largest_q" in data.keys():
+	    self.torrent_largest(data["torrent_largest_q"])
     
     def handle_args(self):
 	
-	if self.options.update_package_list:
-	    self.update_torrent_database()
+	if self.options.update_database:
+	    self.q.append("update_database")
+	    self.update_database()
 	    
-	elif self.options.search_package:
-	    self.search_torrent(self.options.search_package.lower())
+	elif self.options.search_torrent:
+	    self.q.append("search_torrent")
+	    self.search_torrent(self.options.search_torrent.lower(), True)
 	    
-	elif self.options.list_packages:
+	elif self.options.list_torrents:
+	    self.q.append("list_torrents")
 	    self.list_torrents()
-	    
-	elif self.options.upload_package:
-	    self.instance.transport.write(json.dumps({"upload_package":self.options.upload_package}))
 	
-	elif self.options.package_manager:
-	    pass
+	elif self.options.torrent_largest:
+	    self.q.append("torrent_largest")
+	    self.message({"torrent_largest":self.options.torrent_largest})
 	    
-	else:
-	    exit() #implement the help arg here
 
 
 class tpm_Proto(protocol.Protocol):

@@ -5,6 +5,8 @@ from twisted.internet import reactor, protocol
 #TODO
 #Add logger
 
+#You need to create a symlink to the package database that points to [youserver.com]/tpm_server/torrent.db, if you want the clients to be able to update.
+
 
 class Server():
     def __init__(self):
@@ -62,23 +64,19 @@ class Server():
 	    
 	print "Done, added %s dummy packages" % total
     
-    def add_package(self, path, name, version, location, sig):
-	pass
+    def add_package(self, name, version, location, sig):
+	if self.sql.add_package(name, version, location, sig):
+	    return True
 	
 	
     def does_torrent_exist(self, torrent_name):
 	if torrent_name in self.sql.return_packages(): 
 	    return True
-	else:
-	    return False
-
     
     def invalidate_package_torrent(self, torrent):
 	pass 
 
-    
-    
-    #This is for when a client creates (automatically) a new package torrent that does not already exist.
+
     def announce_new_package(self, package_name):
 	print "New torrent package %s" % package_name
     

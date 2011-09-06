@@ -44,7 +44,14 @@ class Database:
         #print "Adding package name: %s version: %s hash: %s " % (p_name, p_version, p_hash) #Make this a --verbose option
         self.cursor.execute("""insert into packages values (?,?,?)""", [p_name, p_version, p_hash]) 
         self.connection.commit()
-        
+    
+    def reload_database(self):
+	try:
+	    self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
+	    return True
+	except:
+	    pass
+    
     def remove_package(self):
         pass
         
