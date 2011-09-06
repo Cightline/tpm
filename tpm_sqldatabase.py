@@ -2,7 +2,7 @@ import sqlite3 as sql
 import sqlite3.dbapi2 as dbapi
 import os
 
-#This import will handle all the lower level (not that Python is low level :D ) queries.
+#This import will handle all 
 
 class Database:
     def __init__(self, db_file):
@@ -35,6 +35,7 @@ class Database:
 	print "Database initilized"
 	
     def return_packages(self): #I know this is not the best way to do this...
+	print "[sql] Returning packages"
         packages = []
         for p in self.cursor.execute('select * from packages order by name'):
             packages += [{"name":p[0], "version":p[1], "hash":p[2]}]
@@ -48,6 +49,7 @@ class Database:
     def reload_database(self):
 	try:
 	    self.connection = dbapi.connect(self.db_file, sql.PARSE_DECLTYPES)
+	    print "[sql] Database reloaded"
 	    return True
 	except:
 	    pass

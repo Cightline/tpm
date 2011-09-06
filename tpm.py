@@ -1,10 +1,18 @@
 #!/usr/bin/env python2
-import cPickle, os, ConfigParser, json, optparse, cStringIO,check_config, sys
+import cPickle
+import os
+import ConfigParser
+import json
+import optparse
+import sys
+
 from twisted.internet import reactor, defer, protocol
+from twisted.protocols.basic import LineReceiver
 from twisted.python import util    
 
+import check_config
 
-#This is the "mask" to tpmd. It communicates with the daemon. This is needed because the daemon is a torrent seeder/leacher. 
+#This is the "puppet" of tpmd. It communicates with the daemon. This is needed because the daemon is a torrent seeder/leacher. 
 #It simply tells the daemon what it needs and kindly waits for a reply. 
 
 
@@ -60,7 +68,8 @@ class tpm():
 	
     
     def message(self, message):
-	self.instance.transport.write(json.dumps(message))
+	'''Used to reduce redundantcy'''
+	self.instance.sendLine(json.dumps(message))
     
     def check_done(self):
 	
@@ -119,9 +128,8 @@ class tpm():
     
     
     def torrent_largest(self, data):
-	if raw_input('Would you like to torrent "%s" [%s]: ' % (data[0], data[1])).startswith("y"):
+	if raw_input('Would you like to torrent "%s" [%s]: ' % (data[0], data[1])).lower() == "y" or "yes":
 	    self.message({"torrent_largest_c":True})
-	
     
 	else:
 	    self.message({"torrent_largest_c":False})
@@ -137,7 +145,7 @@ class tpm():
 
 	
     def delegate_data(self, data):
-	print "data", data 
+	#print "data", data 
 	data = json.loads(data)
 	
 	if "search" in data.keys():
@@ -154,7 +162,10 @@ class tpm():
 	    
 	if "torrent_largest_q" in data.keys():
 	    self.torrent_largest(data["torrent_largest_q"])
-    
+	
+	if "misc" in data.keys():
+	    print data["misc"]
+	    
     def handle_args(self):
 	
 	if self.options.update_database:
@@ -175,13 +186,14 @@ class tpm():
 	    
 
 
-class tpm_Proto(protocol.Protocol):
+class tpm_Proto(LineReceiver):
     
     def connectionMade(self):
 	t.handle_instance(self)
-    
-    def dataReceived(self, data):
-	t.delegate_data(data)
+	
+    def lineReceived(self, line):
+	#print "server_line", line
+	t.delegate_data(line)
 
 if __name__ == "__main__":
     check_config.check_root()
