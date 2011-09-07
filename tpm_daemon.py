@@ -62,7 +62,6 @@ class tpm_daemon():
 	    print "Could not connect to server"
     
     
-    
     #We see if we are even connected to the server, then disconnect if so.
     def disconnect_server(self):
 	
@@ -157,25 +156,40 @@ class tpm_daemon():
 	data = urllib2.urlopen("http://%s/tpm_server/torrent.db" % (self.server))
 	
 	if data.getcode() == 200:
-	    data_length = data.info()["Content-Length"]
-	    self.c_msg({"misc":"Downloading %s bytes" % (data_length)})
+	    total_bytes = int(data.info()["Content-Length"])
+	    self.c_msg({"misc":"Downloading %s bytes" % (total_bytes)})
+	    self.c_msg({"progress":["start",total_bytes]})
+	    self.write_database(None, True)
 	    
-	    if self.write_database(data.read(), True):
-		self.sql.reload_database()
-		return True, len(self.sql.return_packages())
+	    data_length = total_bytes
+	    
+	    while data_length:
+		
+		if data_length <= 1024:
+		    block = data_length
+		    data_length = 0
+		else:
+		    block = data_length - 1024
+		    data_length -= 1024
+		    
+		
+		self.write_database(data.read(block))
+		self.c_msg({"progress":[data_length, total_bytes]})
+		
+	    self.c_msg({"progress":["done", None]})
+	    self.sql.reload_database()
+	    return True, len(self.sql.return_packages())
 
 
 
 	    
-    def write_database(self, data, new_database=True):
+    def write_database(self, data, init_new=False):
 	
-	if new_database:
-	    print "[tpmd] Writting new database"
+	if init_new:
 	    with open(self.local_database, "wb") as new_database:
-		new_database.write(data)
+		new_database.write("")
 		return True
 	
-	print "[tpmd] Writting to existing database"
 	with open(self.local_database, "ab") as new_database:
 	    new_database.write(data)
 	    return True

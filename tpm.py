@@ -8,7 +8,8 @@ import sys
 
 from twisted.internet import reactor, defer, protocol
 from twisted.protocols.basic import LineReceiver
-from twisted.python import util    
+from twisted.python import util
+import progressbar
 
 import check_config
 
@@ -27,6 +28,7 @@ class tpm():
 	    cfg.readfp(open(self.config))
 	    self.json_server = cfg.get("server", "address")
 	    self.json_port = cfg.get("server", "port")
+	    
 	
 	self.SUCCESS = {"update_database":"Database updated"}
 	self.ERROR = {"update_database":"Could not update database"}
@@ -139,6 +141,17 @@ class tpm():
 	self.check_done()
 
     
+    def handle_progress(self, progress):
+	if progress[0] == "done":
+	    self.progress.finish()
+	    return 
+	    
+	elif progress[0] == "start":
+	    self.progress = progressbar.ProgressBar(widgets=[progressbar.Percentage()], maxval=progress[1]).start()
+	    return 
+	    
+	self.progress.update(progress[0])
+    
     def handle_instance(self, instance):
 	self.instance = instance
 	self.handle_args()
@@ -165,6 +178,9 @@ class tpm():
 	
 	if "misc" in data.keys():
 	    print data["misc"]
+	
+	if "progress" in data.keys():
+	    self.handle_progress(data["progress"])
 	    
     def handle_args(self):
 	
